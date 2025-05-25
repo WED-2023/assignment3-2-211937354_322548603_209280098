@@ -1,7 +1,7 @@
 {
   "name": "assignment-3.2",
   "version": "1.0.0",
-  "description": "",
+  "description": "A modern web application for browsing, searching, and discovering recipes using the Spoonacular API.  \r Includes complete API specification via Swagger (OpenAPI) and dynamic client-side rendering with Vue.js / React.",
   "main": "main.js",
   "scripts": {
     "start": "node main.js"
@@ -16,8 +16,8 @@
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
     "crypto-js": "^4.0.0",
-    "dotenv": "^8.2.0",
-    "express": "^4.17.1",
+    "dotenv": "^8.6.0",
+    "express": "^4.21.2",
     "express-validator": "^6.4.1",
     "morgan": "^1.10.0",
     "mssql": "^6.2.0",
@@ -27,5 +27,13 @@
   },
   "devDependencies": {
     "mysql": "^2.18.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WED-2023/assignment3-2-211937354_322548603_209280098.git"
+  },
+  "bugs": {
+    "url": "https://github.com/WED-2023/assignment3-2-211937354_322548603_209280098/issues"
+  },
+  "homepage": "https://github.com/WED-2023/assignment3-2-211937354_322548603_209280098#readme"
 }

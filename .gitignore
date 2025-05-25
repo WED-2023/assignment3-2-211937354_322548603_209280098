@@ -1,0 +1,24 @@
+# node dependencies
+node_modules/
+
+certificates/
+*.pem
+
+.env
+.env.local
+.env.*.local
+
+.idea/
+.vscode/
+
+.DS_Store
+Thumbs.db
+*.log
+
+dist/
+build/
+out/
+
+coverage/
+temp/
+tmp/
