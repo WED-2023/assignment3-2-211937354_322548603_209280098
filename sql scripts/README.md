@@ -31,11 +31,11 @@ DB_NAME=recipes_db
 ```
 
 2. Open `schema.sql` and run it:
-    - The script contains a `USE recipes_db;` statement
-    - If the database does **not** yet exist, uncomment the first line:
-      ```sql
-      CREATE DATABASE IF NOT EXISTS recipes_db;
-      ```
+   - The script contains a `USE recipes_db;` statement
+   - If the database does **not** yet exist, uncomment the first line:
+     ```sql
+     CREATE DATABASE IF NOT EXISTS recipes_db;
+     ```
 
 3. Execute `initial_data.sql` to populate example rows for testing.
 
@@ -167,6 +167,46 @@ Each table below includes:
 - **Why**: Normalize recipe steps into a dedicated, queryable table
 
 ---
+
+### 🔍 Search History vs. Recipe Views
+
+While both tables record user interactions, they serve distinct purposes:
+
+- **search_history** tracks _what the user typed_ and _filters they applied_ (cuisine, diet, intolerances).
+- **recipe_views** only tracks _which recipes_ were viewed, and only applies to **Spoonacular recipes** (external API).
+
+This separation allows the system to analyze search intent vs. actual behavior.
+
+---
+
+## 🧩 JS ↔ SQL Integration: `data_access` Layer
+
+The directory `sql_scripts/data_access/` holds all logic for interacting with the database programmatically via **Node.js**.
+
+Each file represents a single table and provides **CRUD operations** written in JavaScript using async/await with MySQL.
+
+For example:
+
+```js
+const db = require("../db_connection");
+```
+- This line imports a pooled MySQL connection (from `db_connection.js`)
+- It automatically uses credentials from the `.env` file
+- It ensures the system doesn’t open or close connections per request
+
+Each file ends with:
+
+```js
+module.exports = {
+  functionName1,
+  functionName2,
+  ...
+}
+```
+- This exposes the listed functions to other parts of the project
+- For example: your route handlers (e.g., `routes/user.js`) can call `createUser(...)` directly
+
+🧪 All data access files are fully tested and mapped to schema constraints and validations.
 
 ## 📌 Summary
 

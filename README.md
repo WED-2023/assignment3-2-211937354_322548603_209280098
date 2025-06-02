@@ -109,11 +109,56 @@ After full local testing, the system supports live deployment using an HTTPS ser
 3. Place certificates inside `certificates/` folder
 4. Configure HTTPS in `server_connection.js`
 
-```bash
-node server_connection.js
+```bash 
+  node server_connection.js
 ```
+> ⚠️ **Important Note – Keep the Remote Session Active**  
+> Once you start the global server with `node server_connection.js`, make sure to **keep the Remote Desktop session open**.  
+> Closing or disconnecting from the remote session will **terminate the server process** and shut down the domain.
+>
+> To keep the server running:
+> - Leave the Remote Desktop window open in the background.
+> - Or configure your session to stay alive after disconnect (requires admin-level group policy changes).
+>
+> 🔁 You can always restart the server by reconnecting and running the command again.
 
-Visit via browser: [https://lln.cs.bgu.ac.il](https://lln.cs.bgu.ac.il)
+
+### 🔗 Team Access to the Global Server
+
+Once the HTTPS server is up and running with a valid certificate, your teammates **do not need to generate their own SSL files or connect via VPN**.
+
+They can simply access the server using the following URL from any browser or tool (e.g., Postman):
+
+> https://lln.cs.bgu.ac.il
+
+✅ Make sure the server is active when accessing this URL. If it's shut down, a timeout or certificate error will occur.
+
+
+---
+
+### 🛠 Recommended Workflow for Server Deployment
+
+In order to run the server remotely, the code must be physically present on the remote machine (the university's assigned IP).
+
+Recommended steps:
+
+1. Work locally on your machine (e.g., using WebStorm or VSCode)
+2. Commit and push your changes to GitHub:
+   ```bash
+   git add .
+   git commit -m "Update project files"
+   git push
+   ```
+3. Open **Remote Desktop** and pull the latest changes:
+   ```bash
+   git pull
+   ```
+4. Start the HTTPS server:
+   ```bash
+   node server_connection.js
+   ```
+
+✅ Make sure to repeat steps 2–4 whenever updates are made locally.
 
 ---
 
