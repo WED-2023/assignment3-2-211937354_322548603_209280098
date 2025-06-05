@@ -12,20 +12,39 @@ async function addMealPlan(userId, spoonacularId, userRecipeId, familyRecipeId, 
     await db.execute(query, [userId, spoonacularId, userRecipeId, familyRecipeId, orderInMeal]);
 }
 
-// Get all meal plans for a user
+// Get all meal plans for a user (sorted by position)
 async function getMealPlansByUserId(userId) {
     const [rows] = await db.execute(
-        "SELECT * FROM meal_plans WHERE user_id = ? ORDER BY order_in_meal ASC",
+        `SELECT * FROM meal_plans WHERE user_id = ? ORDER BY order_in_meal ASC`,
         [userId]
     );
     return rows;
 }
 
-// Delete a single meal plan entry by its ID
-async function deleteMealPlanById(planId) {
+// Delete a specific meal plan by its plan ID
+async function deleteMealPlanById(planId, userId) {
+    // Step 1: Get the order of the deleted plan
+    const [[deleted]] = await db.execute(
+        "SELECT order_in_meal FROM meal_plans WHERE plan_id = ? AND user_id = ?",
+        [planId, userId]
+    );
+
+    if (!deleted) return;
+
+    const deletedOrder = deleted.order_in_meal;
+
+    // Step 2: Delete the plan
     await db.execute(
         "DELETE FROM meal_plans WHERE plan_id = ?",
         [planId]
+    );
+
+    // Step 3: Update the order of remaining plans
+    await db.execute(
+        `UPDATE meal_plans
+         SET order_in_meal = order_in_meal - 1
+         WHERE user_id = ? AND order_in_meal > ?`,
+        [userId, deletedOrder]
     );
 }
 
@@ -37,9 +56,19 @@ async function deleteMealPlansByUserId(userId) {
     );
 }
 
+// Count how many meals the user has in the plan (for progress bar)
+async function getMealPlanCount(userId) {
+    const [[{ count }]] = await db.execute(
+        "SELECT COUNT(*) AS count FROM meal_plans WHERE user_id = ?",
+        [userId]
+    );
+    return count;
+}
+
 module.exports = {
     addMealPlan,
     getMealPlansByUserId,
     deleteMealPlanById,
-    deleteMealPlansByUserId
+    deleteMealPlansByUserId,
+    getMealPlanCount
 };

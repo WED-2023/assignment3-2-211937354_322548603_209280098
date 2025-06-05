@@ -63,8 +63,8 @@ async function deleteProgressForRecipe(userId, spoonacularId, userRecipeId, fami
 
 module.exports = {
     addPreparationStepProgress,
-    markStepCompleted,
+    completeStep,
     uncompleteStep,
-    getProgressByUserAndRecipe,
-    resetProgressForRecipe
+    getProgressForRecipe,
+    deleteProgressForRecipe
 };

@@ -1,6 +1,8 @@
-## CREATE DATABASE IF NOT EXISTS recipes_db;
+#DROP DATABASE IF EXISTS recipes_db;
+#CREATE DATABASE recipes_db;
 
 USE recipes_db;
+
 
 -- Table 1: users
 CREATE TABLE users (
@@ -10,11 +12,9 @@ CREATE TABLE users (
                        last_name VARCHAR(50) NOT NULL,
                        country VARCHAR(100) NOT NULL,
                        email VARCHAR(255) NOT NULL UNIQUE,
-                       password_hash VARCHAR(255) NOT NULL,
-                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                       CONSTRAINT chk_username_length CHECK (CHAR_LENGTH(username) >= 3 AND CHAR_LENGTH(username) <= 8),
-                       CONSTRAINT chk_username_alpha CHECK (username REGEXP '^[A-Za-z]+$')
-    );
+                       hashedPassword VARCHAR(255) NOT NULL,
+                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Table 2: user_recipes
 CREATE TABLE user_recipes (
@@ -83,11 +83,15 @@ CREATE TABLE user_favorites (
 CREATE TABLE recipe_views (
                               view_id INT AUTO_INCREMENT PRIMARY KEY,
                               user_id INT NOT NULL,
-                              spoonacular_recipe_id INT NOT NULL,
-                              viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                              FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                              INDEX idx_user_viewed_at (user_id, viewed_at)
+                              spoonacular_recipe_id INT NULL,
+                              user_recipe_id INT NULL,
+                              family_recipe_id INT NULL,
+                              viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NULL,
+                              CONSTRAINT recipe_views_ibfk_1 FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_user_viewed_at ON recipe_views(user_id, viewed_at);
+
 
 -- Table 8: search_history
 CREATE TABLE search_history (

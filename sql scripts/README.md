@@ -98,7 +98,7 @@ Each table below includes:
 
 ### 4. `family_recipes` – ✅ Required
 
-- **Purpose**: Family-style recipes with story, owner name, timing
+- **Purpose**: User-contributed family-style recipes with a story, preparation context, and legacy value (owner name, when-to-prepare). These recipes are public and meant to be shared across all users – unlike private personal recipes.
 - **PK**: `recipe_id`
 - **FK**: `user_id → users(user_id)`
 - **Why separate**: Different fields (owner, heritage text)

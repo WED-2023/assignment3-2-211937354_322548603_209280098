@@ -1,65 +1,17 @@
-const DButils = require('./DButils');
-const userRecipesDB = require("/sql scripts/data_access/user_recipes_db");
-const familyRecipesDB = require("/sql scripts/data_access/family_recipes_db");
+const recipesUtils = require("./recipes_utils");
 const favoritesDB = require("/sql scripts/data_access/user_favorites_db");
 const viewsDB = require("/sql scripts/data_access/recipe_views_db");
-const usersDB = require("/sql scripts/data_access/user_db");
-const searchDB = require("/sql scripts/data_access/search_history_db");
-const progressDB = require("/sql scripts/data_access/recipe_preparation_progress_db");
+const searchHistoryDB  = require("/sql scripts/data_access/search_history_db");
 const mealPlanDB = require("/sql scripts/data_access/meal_plans_db");
 
-/**
- * Retrieves all custom recipes created by a user
- */
-async function getUserPersonalRecipes(userId) {
-    return await userRecipesDB.getUserRecipes(userId);
-}
 
-/**
- * Saves a new personal recipe
- */
-async function createPersonalRecipe(userId, recipeData) {
-    const {
-        title, imageUrl, readyInMinutes, popularityScore = 0,
-        isVegan, isVegetarian, isGlutenFree,
-        servings, summary, instructions
-    } = recipeData;
-
-    await userRecipesDB.createUserRecipe(
-        userId, title, imageUrl, readyInMinutes, popularityScore,
-        isVegan, isVegetarian, isGlutenFree,
-        servings, summary, instructions
-    );
-}
-
-/**
- * Retrieves family recipes added by the user
- */
-async function getMyFamilyRecipes(userId) {
-    return await familyRecipesDB.getFamilyRecipesByUserId(userId);
-}
-
-/**
- * Submits a new family recipe
- */
-async function submitFamilyRecipe(userId, recipeData) {
-    const {
-        title, ownerName, whenToPrepare, imageUrl,
-        readyInMinutes, servings, instructions
-    } = recipeData;
-
-    await familyRecipesDB.createFamilyRecipe(
-        userId, title, ownerName, whenToPrepare,
-        imageUrl, readyInMinutes, servings, instructions
-    );
-}
 
 /**
  * Adds a recipe to user's favorites, if not already added
  */
 async function addFavoriteRecipe(userId, recipeId) {
     const currentFavorites = await favoritesDB.getFavoritesByUserId(userId);
-    if (!currentFavorites.some(fav => fav.recipe_id == recipeId)) {
+    if (!currentFavorites.some(fav => fav.spoonacular_recipe_id === recipeId)) {
         await favoritesDB.addFavorite(userId, recipeId);
     }
 }
@@ -79,84 +31,105 @@ async function getFavoriteRecipes(userId) {
 }
 
 /**
- * Adds a view log for a recipe and increases popularity score
+ * Adds a view log for a recipe and increases popularity score if it's a local recipe
  */
-async function addViewedRecipe(userId, recipeId) {
-    await viewsDB.addRecipeView(userId, recipeId);
-    await userRecipesDB.incrementPopularity(recipeId); // assumes this function exists
+async function addViewedRecipe(userId, { spoonacularId = null, userRecipeId = null, familyRecipeId = null }) {
+    await viewsDB.addRecipeView(userId, { spoonacularId, userRecipeId, familyRecipeId });
+
+    // Increase popularity only for local user-created recipes
+    if (userRecipeId) {
+        await recipesUtils.incrementUserRecipePopularity(userRecipeId);
+    }
 }
+
 
 /**
  * Returns last 3 viewed recipes
  */
 async function getViewedRecipes(userId) {
-    return await viewsDB.getRecentViews(userId, 3); // assumes this function exists
+    return await viewsDB.getViewsByUserId(userId);
 }
 
-// /**
-//  * Returns full view history (optional)
-//  */
-// async function getViewHistory(userId) {
-//     return await viewsDB.getViewsByUserId(userId);
-// }
 
 /**
- * Save user’s search query and result set
+ * Deletes all view records for a specific user
  */
-async function saveSearchHistory(userId, searchQuery, recipeIds) {
-    await searchDB.addSearchRecord(userId, searchQuery, recipeIds.join(","));
+async function clearViewedHistory(userId) {
+    await viewsDB.deleteViewsByUserId(userId);
 }
 
+
+
 /**
- * Get recent search history for the user
+ * Logs the user's latest search (replaces previous one)
  */
-async function getLastSearches(userId) {
-    return await searchDB.getRecentSearches(userId); // assumes implementation
+async function saveUserSearch(userId, searchQuery, cuisine, diet, intolerance, limit = 5) {
+    await searchHistoryDB.addSearchEntry(userId, searchQuery, cuisine, diet, intolerance, limit);
 }
 
 /**
- * Save a meal plan for the user
+ * Retrieves the most recent search performed by the user
  */
-async function saveMealPlan(userId, planData) {
-    await mealPlanDB.saveMealPlan(userId, planData);
+async function getLastSearchQuery(userId) {
+    return await searchHistoryDB.getSearchHistoryByUser(userId);
+}
+
+
+/**
+ * Adds a new recipe to the user's meal plan.
+ * Only one recipe type (spoonacular, user, or family) should be defined.
+ * The function automatically sets the correct order for the new item.
+ */
+async function addMealPlan(userId, { spoonacularId = null, userRecipeId = null, familyRecipeId = null }) {
+    // Step 1: Fetch current count of meal plan entries for the user
+    const currentPlans = await mealPlanDB.getMealPlansByUserId(userId);
+    const nextOrder = currentPlans.length + 1;
+
+    // Step 2: Insert new plan at the next order
+    await mealPlanDB.addMealPlan(userId, spoonacularId, userRecipeId, familyRecipeId, nextOrder);
 }
 
 /**
- * Retrieve the saved meal plan
+ * Retrieves all meal plan entries for the user
  */
 async function getMealPlan(userId) {
-    return await mealPlanDB.getMealPlanByUserId(userId);
+    return await mealPlanDB.getMealPlansByUserId(userId);
 }
 
 /**
- * Track progress of a specific recipe step
+ * Removes a meal plan entry by its ID and updates the order of the rest
  */
-async function updateRecipeProgress(userId, recipeId, stepNumber, status) {
-    await progressDB.updateProgress(userId, recipeId, stepNumber, status);
+async function removeMealPlan(planId, userId) {
+    await mealPlanDB.deleteMealPlanById(planId, userId);
 }
 
 /**
- * Get progress of a recipe for the user
+ * Removes all meal plan entries for a given user
  */
-async function getRecipeProgress(userId, recipeId) {
-    return await progressDB.getUserProgress(userId, recipeId);
+async function clearAllMealPlans(userId) {
+    await mealPlanDB.deleteMealPlansByUserId(userId);
 }
+/**
+ * Retrieves the count of meal plans a user has
+ */
+async function getMealPlanCount(userId) {
+    return await mealPlanDB.getMealPlanCount(userId);
+}
+
+
 
 module.exports = {
-    getUserPersonalRecipes,
-    createPersonalRecipe,
-    getMyFamilyRecipes,
-    submitFamilyRecipe,
+    getMealPlanCount,
+    clearAllMealPlans,
+    removeMealPlan,
+    getMealPlan,
+    getLastSearchQuery,
+    clearViewedHistory,
     addFavoriteRecipe,
     removeFavorite,
     getFavoriteRecipes,
     addViewedRecipe,
     getViewedRecipes,
-    getViewHistory,
-    saveSearchHistory,
-    getLastSearches,
-    saveMealPlan,
-    getMealPlan,
-    updateRecipeProgress,
-    getRecipeProgress
+    saveUserSearch,
+    addMealPlan
 };

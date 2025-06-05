@@ -1,235 +1,365 @@
-const axios = require("axios");
-const DButils = require("./DButils");
-const userUtils = require("./user_utils");
+const userRecipesDB = require("../../sql scripts/data_access/user_recipes_db");
+const userRecipeIngredientsDB = require("../../sql scripts/data_access/user_recipe_ingredients_db");
+const familyRecipesDB = require("../../sql scripts/data_access/family_recipes_db");
+const familyRecipeIngredientsDB = require("../../sql scripts/data_access/family_recipe_ingredients_db");
+const recipeStepsDB = require("../../sql scripts/data_access/recipe_preparation_steps_db");
+const recipeProgressDB = require("../../sql scripts/data_access/recipe_preparation_progress_db");
 
 const api_domain = "https://api.spoonacular.com/recipes";
 
-/** Fetch full info from Spoonacular for a given recipe ID */
-async function fetchFromSpoonacular(id) {
-    const res = await axios.get(`${api_domain}/${id}/information`, {
-        params: {
-            includeNutrition: false,
-            apiKey: process.env.spooncular_apiKey,
-        },
-    });
-    return res.data;
-}
-
-/** Return a short summary (overview) of a Spoonacular recipe */
-async function getOverview(id) {
-    const data = await fetchFromSpoonacular(id);
+/**
+ * Add a new personal recipe to the user's collection
+ */
+async function addPersonalRecipe(userId, recipeData) {
     const {
-        title, readyInMinutes, image, aggregateLikes,
-        vegan, vegetarian, glutenFree,
-    } = data;
-
-    return {
-        id,
         title,
+        imageUrl,
         readyInMinutes,
-        image,
-        popularity: aggregateLikes,
-        vegan,
-        vegetarian,
-        glutenFree,
-    };
-}
-
-/** Get 3 random recipes from Spoonacular — nice and easy */
-async function getThreeRandom() {
-    const res = await axios.get(`${api_domain}/random`, {
-        params: {
-            number: 3,
-            apiKey: process.env.spoonacular_apiKey,
-        },
-    });
-    return Promise.all(res.data.recipes.map((r) => getOverview(r.id)));
-}
-
-/** Pull full recipe info from our local DB */
-async function getFullFromDB(recipeId) {
-    const [recipe] = await DButils.execQuery(
-        `SELECT * FROM recipes WHERE recipe_id='${recipeId}'`
-    );
-    if (!recipe) return null;
-
-    const ingredients = await DButils.execQuery(
-        `SELECT name, amount, unit FROM ingredients WHERE recipe_id='${recipeId}'`
-    );
-
-    const steps = recipe.instructions
-        ? JSON.parse(recipe.instructions)
-        : [];
-
-    return {
-        id: recipe.recipe_id,
-        title: recipe.title,
-        image: recipe.image,
-        readyInMinutes: recipe.ready_in_minutes,
-        popularity: recipe.popularity,
-        vegan: !!recipe.vegan,
-        vegetarian: !!recipe.vegetarian,
-        glutenFree: !!recipe.gluten_free,
-        servings: recipe.servings,
-        instructions: steps,
-        ingredients,
-        createdBy: recipe.created_by,
-        occasion: recipe.occasion,
-        isFamily: !!recipe.isFamily,
-        familyMember: recipe.family_member || null,
-    };
-}
-
-/** Full recipe info from Spoonacular */
-async function getFullFromSpoonacular(recipeId) {
-    const data = await fetchFromSpoonacular(recipeId);
-
-    const ingredients = data.extendedIngredients.map((ing) => ({
-        name: ing.name,
-        amount: ing.amount,
-        unit: ing.unit,
-    }));
-
-    const instructions = data.analyzedInstructions?.[0]?.steps?.map(s => s.step)
-        || (data.instructions ? [data.instructions] : []);
-
-    return {
-        id: data.id,
-        title: data.title,
-        image: data.image,
-        readyInMinutes: data.readyInMinutes,
-        popularity: data.aggregateLikes,
-        vegan: data.vegan,
-        vegetarian: data.vegetarian,
-        glutenFree: data.glutenFree,
-        servings: data.servings,
-        ingredients,
+        popularityScore,
+        isVegan,
+        isVegetarian,
+        isGlutenFree,
+        servings,
+        summary,
         instructions,
-        createdBy: data.creditsText || "unknown",
-        occasion: data.occasions?.[0] || null,
-    };
+    } = recipeData;
+
+    await userRecipesDB.createUserRecipe(
+        userId,
+        title,
+        imageUrl,
+        readyInMinutes,
+        popularityScore,
+        isVegan,
+        isVegetarian,
+        isGlutenFree,
+        servings,
+        summary,
+        instructions
+    );
 }
 
-/** Decide which source to use and return full recipe info */
-async function getFullRecipeById(recipeId) {
-    return recipeId.includes("ID")
-        ? await getFullFromDB(recipeId)
-        : await getFullFromSpoonacular(recipeId);
+/**
+ * Retrieve all personal recipes created by a specific user
+ */
+async function getAllUserRecipes(userId) {
+    return await userRecipesDB.getUserRecipes(userId);
 }
 
-/** Search Spoonacular using flexible filters */
-async function searchRecipesWithParams(filters) {
-    const params = {
-        apiKey: process.env.spoonacular_apiKey,
-        number: filters.limit || 5,
-        query: filters.query,
-        cuisine: filters.cuisine,
-        diet: filters.diet,
-        intolerances: filters.intolerances,
-        sort: filters.sortBy,
-        sortDirection: filters.sortDirection,
-    };
+/**
+ * Deletes a personal recipe by ID (and its ingredients)
+ */
+async function deletePersonalRecipe(recipeId) {
+    // delete all ingredients
 
-    Object.keys(params).forEach((key) => {
-        if (params[key] === undefined) delete params[key];
-    });
+    await deleteAllIngredientsForRecipe(recipeId);
 
-    const res = await axios.get(`${api_domain}/complexSearch`, { params });
-    const ids = res.data.results.map((r) => r.id);
-    return Promise.all(ids.map((id) => getOverview(id)));
+    // delete the recipe
+    await userRecipesDB.deleteUserRecipe(recipeId);
 }
 
-/** Like a recipe: either from Spoonacular or from user's DB */
-async function likeRecipe(recipeId, userId) {
-    const isLocal = recipeId.includes("ID");
 
-    const existing = await DButils.execQuery(`
-        SELECT likes_count FROM recipe_likes WHERE recipe_id = '${recipeId}'
-    `);
-
-    if (existing.length === 0) {
-        const basePopularity = isLocal
-            ? await getLocalPopularity(recipeId, userId)
-            : (await getOverview(recipeId)).popularity;
-
-        const newPop = basePopularity + 1;
-
-        await DButils.execQuery(`
-            INSERT INTO recipe_likes (recipe_id, likes_count)
-            VALUES ('${recipeId}', ${newPop})
-        `);
-
-        if (isLocal) {
-            await DButils.execQuery(`
-                UPDATE recipes
-                SET popularity = ${newPop}
-                WHERE recipe_id = '${recipeId}' AND user_id = '${userId}'
-            `);
-        }
-
-        return { message: "First like — we boosted it up ✨", recipeId, popularity: newPop };
-    }
-
-    const currentPop = Number(existing[0].likes_count);
-    const updatedPop = currentPop + 1;
-
-    await DButils.execQuery(`
-    UPDATE recipe_likes
-    SET likes_count = ${updatedPop}
-    WHERE recipe_id = '${recipeId}'
-  `);
-
-    if (isLocal) {
-        await DButils.execQuery(`
-      UPDATE recipes
-      SET popularity = ${updatedPop}
-      WHERE recipe_id = '${recipeId}' AND user_id = '${userId}'
-    `);
-    }
-
-    return { message: "Popularity bumped again 💪", recipeId, popularity: updatedPop };
+/**
+ * Increments popularity of a user-created recipe
+ */
+async function incrementUserRecipePopularity(recipeId) {
+    await userRecipesDB.incrementPopularity(recipeId);
 }
 
-/** Get how popular a local recipe is, by user */
-async function getLocalPopularity(recipeId, userId) {
-    const res = await DButils.execQuery(`
-        SELECT popularity FROM recipes
-        WHERE recipe_id = '${recipeId}' AND user_id = '${userId}'
-    `);
-    return res.length ? res[0].popularity : 0;
+/** Update a full user recipe by ID */
+async function updateUserRecipeDetails(recipeId, recipeData) {
+    const {
+        title,
+        imageUrl,
+        readyInMinutes,
+        isVegan,
+        isVegetarian,
+        isGlutenFree,
+        servings,
+        summary,
+        instructions,
+    } = recipeData;
+
+    await userRecipesDB.updateUserRecipe(
+        recipeId,
+        title,
+        imageUrl,
+        readyInMinutes,
+        isVegan,
+        isVegetarian,
+        isGlutenFree,
+        servings,
+        summary,
+        instructions
+    );
 }
 
-/** Update progress for a specific recipe step for a user */
-async function updateRecipeStepProgress(userId, recipeId, stepNumber, status) {
-    await DButils.execQuery(`
-    INSERT INTO recipe_progress (user_id, recipe_id, step_number, status)
-    VALUES ('${userId}', '${recipeId}', ${stepNumber}, '${status}')
-    ON DUPLICATE KEY UPDATE status = '${status}'
-  `);
+/**
+ * Adds a new ingredient to a specific personal recipe
+ */
+async function addIngredientToUserRecipe(recipeId, ingredientName, amount, unit) {
+    await userRecipeIngredientsDB.addIngredientToUserRecipe(
+        recipeId,
+        ingredientName,
+        amount,
+        unit
+    );
 }
 
-/** Get full progress for a recipe for a user */
-async function getRecipeProgressForUser(userId, recipeId) {
-    const rows = await DButils.execQuery(`
-    SELECT step_number, status
-    FROM recipe_progress
-    WHERE user_id = '${userId}' AND recipe_id = '${recipeId}'
-  `);
+/**
+ * Retrieves all ingredients for a user's personal recipe
+ */
+async function getIngredientsByRecipeId(recipeId) {
+    return await userRecipeIngredientsDB.getIngredientsByRecipeId(recipeId);
+}
 
-    const progress = {};
-    rows.forEach((row) => {
-        progress[row.step_number] = row.status;
-    });
 
-    return progress;
+/**
+ * Updates an existing ingredient in a personal recipe by ingredient ID
+ */
+async function updateIngredient(ingredientId, updatedFields) {
+    await userRecipeIngredientsDB.updateIngredient(ingredientId, updatedFields);
+}
+
+/**
+ * Deletes a specific ingredient from a personal recipe
+ */
+async function deleteIngredient(ingredientId) {
+    await userRecipeIngredientsDB.deleteIngredientById(ingredientId);
+}
+
+/**
+ * Deletes all ingredients for a given personal recipe (used when deleting recipe)
+ */
+async function deleteAllIngredientsForRecipe(recipeId) {
+    await userRecipeIngredientsDB.deleteIngredientsByRecipeId(recipeId);
+}
+
+/**
+ * Add a new family recipe to the system
+ */
+async function addFamilyRecipe(userId, recipeData) {
+    const {
+        title, ownerName, whenToPrepare,
+        imageUrl, readyInMinutes, servings, instructions
+    } = recipeData;
+
+    await familyRecipesDB.createFamilyRecipe(
+        userId,
+        title,
+        ownerName,
+        whenToPrepare,
+        imageUrl,
+        readyInMinutes,
+        servings,
+        instructions
+    );
+}
+
+/**
+ * Retrieve all available family recipes
+ */
+async function getAllFamilyRecipes() {
+    return await familyRecipesDB.getAllFamilyRecipes();
+}
+
+/**
+ * Retrieve a specific family recipe by ID
+ */
+async function getFamilyRecipeById(recipeId) {
+    return await familyRecipesDB.getFamilyRecipeById(recipeId);
+}
+
+/**
+ * Retrieve all family recipes created by a specific user
+ */
+async function getFamilyRecipesByUserId(userId) {
+    return await familyRecipesDB.getFamilyRecipesByUserId(userId);
+}
+
+/**
+ * Update a family recipe's details
+ */
+async function updateFamilyRecipe(recipeId, updatedFields) {
+    await familyRecipesDB.updateFamilyRecipe(recipeId, updatedFields);
+}
+/**
+ * Delete a family recipe by ID
+ */
+async function deleteFamilyRecipe(recipeId) {
+    await familyRecipesDB.deleteFamilyRecipeById(recipeId);
+}
+
+/**
+ * Adds a new ingredient to a family recipe (by recipe ID)
+ */
+async function addIngredientToFamilyRecipe(recipeId, ingredientName, amount, unit) {
+    await familyRecipeIngredientsDB.addIngredientToFamilyRecipe(
+        recipeId,
+        ingredientName,
+        amount,
+        unit
+    );
+}
+
+/**
+ * Gets all ingredients for a specific family recipe (by recipe ID)
+ */
+async function getIngredientsByFamilyRecipeId(recipeId) {
+    return await familyRecipeIngredientsDB.getIngredientsByFamilyRecipeId(recipeId);
+}
+
+
+
+
+/**
+ * Updates an existing ingredient in a family recipe by ingredient ID
+ */
+async function updateFamilyIngredientById(ingredientId, ingredientName, amount, unit) {
+    await familyRecipeIngredientsDB.updateFamilyIngredientById(ingredientId, ingredientName, amount, unit);
+}
+
+
+/**
+ * Deletes a specific ingredient from a family recipe
+ */
+async function deleteFamilyIngredient(ingredientId) {
+    await familyRecipeIngredientsDB.deleteIngredientById(ingredientId);
+}
+
+
+
+/**
+ * Adds a new preparation step to a recipe (user or family)
+ */
+async function addPreparationStepToRecipe(userRecipeId, familyRecipeId, stepNumber, stepDescription) {
+    await recipeStepsDB.addPreparationStep(userRecipeId, familyRecipeId, stepNumber, stepDescription);
+}
+
+/**
+ * Retrieve all preparation steps for a given recipe (user or family)
+ */
+async function getPreparationSteps(userRecipeId, familyRecipeId) {
+    return await recipeStepsDB.getStepsByRecipeId(userRecipeId, familyRecipeId);
+}
+
+/**
+ * Update the description of a preparation step by step ID
+ */
+async function updatePreparationStep(stepId, newDescription) {
+    await recipeStepsDB.updateStepDescription(stepId, newDescription);
+}
+
+
+/**
+ * Delete a single preparation step by step ID
+ */
+async function deletePreparationStep(stepId) {
+    await recipeStepsDB.deleteStepById(stepId);
+}
+
+/**
+ * Delete all steps associated with a specific recipe
+ */
+async function deleteAllStepsForRecipe(userRecipeId, familyRecipeId) {
+    await recipeStepsDB.deleteAllStepsByRecipe(userRecipeId, familyRecipeId);
+}
+
+/**
+ * Adds a new progress entry for a preparation step (of any recipe type)
+ */
+async function addPreparationStepProgress(userId, spoonacularId, userRecipeId, familyRecipeId, stepNumber) {
+    await recipeProgressDB.addPreparationStepProgress(
+        userId,
+        spoonacularId,
+        userRecipeId,
+        familyRecipeId,
+        stepNumber
+    );
+}
+
+/**
+ * Marks a specific preparation step as completed for a user (any recipe type)
+ */
+async function completePreparationStep(userId, spoonacularId, userRecipeId, familyRecipeId, stepNumber) {
+    await recipeProgressDB.completeStep(
+        userId,
+        spoonacularId,
+        userRecipeId,
+        familyRecipeId,
+        stepNumber
+    );
+}
+
+/**
+ * Marks a preparation step as uncompleted for a user (resets completion state)
+ */
+async function uncompletePreparationStep(userId, spoonacularId, userRecipeId, familyRecipeId, stepNumber) {
+    await recipeProgressDB.uncompleteStep(
+        userId,
+        spoonacularId,
+        userRecipeId,
+        familyRecipeId,
+        stepNumber
+    );
+}
+
+/**
+ * Retrieves preparation progress for a specific recipe and user
+ */
+async function getRecipeProgress(userId, spoonacularId, userRecipeId, familyRecipeId) {
+    return await recipeProgressDB.getProgressForRecipe(
+        userId,
+        spoonacularId,
+        userRecipeId,
+        familyRecipeId
+    );
+}
+
+
+/**
+ * Resets the progress tracking for a specific recipe and user
+ */
+async function resetRecipeProgress(userId, spoonacularId, userRecipeId, familyRecipeId) {
+    await recipeProgressDB.deleteProgressForRecipe(
+        userId,
+        spoonacularId,
+        userRecipeId,
+        familyRecipeId
+    );
 }
 
 
 module.exports = {
-    getThreeRandom,
-    getFullRecipeById,
-    searchRecipesWithParams,
-    likeRecipe,
-    updateRecipeStepProgress,
-    getRecipeProgressForUser,
+    resetRecipeProgress,
+    getRecipeProgress,
+    uncompletePreparationStep,
+    completePreparationStep,
+    addPreparationStepProgress,
+    deletePreparationStep,
+    deleteAllStepsForRecipe,
+    updatePreparationStep,
+    getPreparationSteps,
+    addPreparationStepToRecipe,
+    deleteFamilyIngredient,
+    updateFamilyIngredientById,
+    getIngredientsByFamilyRecipeId,
+    addIngredientToFamilyRecipe,
+    deleteFamilyRecipe,
+    updateFamilyRecipe,
+    getFamilyRecipesByUserId,
+    getFamilyRecipeById,
+    getAllFamilyRecipes,
+    addFamilyRecipe,
+    deleteIngredient,
+    updateIngredient,
+    getIngredientsByRecipeId,
+    addIngredientToUserRecipe,
+    updateUserRecipeDetails,
+    incrementUserRecipePopularity,
+    addPersonalRecipe,
+    getAllUserRecipes,
+    deletePersonalRecipe
 };
+
+

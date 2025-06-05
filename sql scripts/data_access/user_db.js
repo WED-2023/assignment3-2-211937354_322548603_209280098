@@ -7,12 +7,11 @@ const db = require("../db_connection");
 // Create a new user
 async function createUser(username, firstName, lastName, country, email, passwordHash) {
     const query = `
-    INSERT INTO users (username, first_name, last_name, country, email, password_hash)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
+        INSERT INTO users (username, first_name, last_name, country, email, hashedPassword)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `;
     await db.execute(query, [username, firstName, lastName, country, email, passwordHash]);
 }
-
 // Get user by email (for login / verification)
 async function getUserByEmail(email) {
     const [rows] = await db.execute("SELECT * FROM users WHERE email = ?", [email]);
@@ -23,6 +22,14 @@ async function getUserByEmail(email) {
 async function getUserByUsername(username) {
     const [rows] = await db.execute("SELECT * FROM users WHERE username = ?", [username]);
     return rows[0];
+}
+
+async function getPasswordHash(username) {
+    const [rows] = await db.execute(
+        "SELECT hashedPassword FROM users WHERE username = ?",
+        [username]
+    );
+    return rows[0]?.password_hash;
 }
 
 // Get user by ID (general retrieval)
@@ -41,13 +48,14 @@ async function updateUserById(userId, updates) {
     const { username, firstName, lastName, country, email, passwordHash } = updates;
     const query = `
         UPDATE users
-        SET username = ?, first_name = ?, last_name = ?, country = ?, email = ?, password_hash = ?
+        SET username = ?, first_name = ?, last_name = ?, country = ?, email = ?, hashedPassword = ?
         WHERE user_id = ?
     `;
     await db.execute(query, [username, firstName, lastName, country, email, passwordHash, userId]);
 }
 
 module.exports = {
+    getPasswordHash,
     createUser,
     getUserByEmail,
     getUserByUsername,

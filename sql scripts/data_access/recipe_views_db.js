@@ -1,27 +1,49 @@
 // This module provides access to the 'recipe_views' table.
-// It supports tracking and retrieving recipe views performed by a user.
+// It handles tracking of recipe views and ensures only the latest 3 are stored per user.
 
 const db = require("../db_connection");
 
-// Log a new view by user on a spoonacular recipe
-async function addRecipeView(userId, spoonacularRecipeId) {
-    const query = `
-        INSERT INTO recipe_views (user_id, spoonacular_recipe_id)
-        VALUES (?, ?)
-    `;
-    await db.execute(query, [userId, spoonacularRecipeId]);
+/**
+ * Inserts a new view record for a user and recipe (spoonacular or local).
+ * Keeps only the latest 3 views by deleting the oldest if needed.
+ */
+async function addRecipeView(userId, { spoonacularId = null, userRecipeId = null, familyRecipeId = null }) {
+    // Step 1: Get all views of the user (ordered by time)
+    const [existingViews] = await db.execute(
+        `SELECT view_id FROM recipe_views
+         WHERE user_id = ?
+         ORDER BY viewed_at ASC`,
+        [userId]
+    );
+
+    // Step 2: If 3 or more exist, delete the oldest one
+    if (existingViews.length >= 3) {
+        const oldestViewId = existingViews[0].view_id;
+        await db.execute("DELETE FROM recipe_views WHERE view_id = ?", [oldestViewId]);
+    }
+
+    // Step 3: Insert the new view
+    await db.execute(
+        `INSERT INTO recipe_views (user_id, spoonacular_recipe_id, user_recipe_id, family_recipe_id)
+         VALUES (?, ?, ?, ?)`,
+        [userId, spoonacularId, userRecipeId, familyRecipeId]
+    );
 }
 
-// Get all views of a user
+/**
+ * Retrieves all view records for a specific user
+ */
 async function getViewsByUserId(userId) {
     const [rows] = await db.execute(
-        "SELECT * FROM recipe_views WHERE user_id = ?",
+        "SELECT * FROM recipe_views WHERE user_id = ? ORDER BY viewed_at DESC",
         [userId]
     );
     return rows;
 }
 
-// Delete all views for a user (for cleanup or reset)
+/**
+ * Deletes all view records for a specific user (used in reset operations)
+ */
 async function deleteViewsByUserId(userId) {
     await db.execute(
         "DELETE FROM recipe_views WHERE user_id = ?",

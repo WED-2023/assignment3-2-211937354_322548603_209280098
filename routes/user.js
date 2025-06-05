@@ -1,27 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const DButils = require("../routes/utils/DButils");
-const recipesUtils = require("../routes/utils/recipes_utils");
+const verifyLogin = require("./middleware/verifyLogin");
 const userUtils = require("../routes/utils/user_utils");
 
 /** Middleware to verify user session */
-router.use(async (req, res, next) => {
-  if (req.session && req.session.user_id) {
-    try {
-      const users = await DButils.execQuery("SELECT user_id FROM users");
-      if (users.find((x) => x.user_id === req.session.user_id)) {
-        req.user_id = req.session.user_id;
-        next();
-      } else {
-        res.sendStatus(401);
-      }
-    } catch (err) {
-      next(err);
-    }
-  } else {
-    res.sendStatus(401);
-  }
-});
+// Middleware to secure all /user routes
+router.use(verifyLogin);
+
 
 /** Favorites */
 router.get("/favorites", async (req, res, next) => {
@@ -55,15 +40,19 @@ router.delete("/favorites/:recipeId", async (req, res, next) => {
 });
 
 /** Views */
-router.post("/:recipeId/viewed", async (req, res, next) => {
+router.post("/viewed", async (req, res, next) => {
   try {
-    await userUtils.addViewedRecipe(req.user_id, req.params.recipeId);
+    const { spoonacularId, userRecipeId, familyRecipeId } = req.body;
+
+    await userUtils.addViewedRecipe(req.user_id, { spoonacularId, userRecipeId, familyRecipeId });
+
     res.status(200).send({ message: "Marked as viewed. Nice pick!" });
   } catch (error) {
     console.error("Error marking recipe as viewed:", error);
     next(error);
   }
 });
+
 
 router.get("/my-last-watched", async (req, res, next) => {
   try {
@@ -75,99 +64,129 @@ router.get("/my-last-watched", async (req, res, next) => {
   }
 });
 
-/** Search history */
-router.get("/searchHistory", async (req, res, next) => {
+router.delete("/views", async (req, res, next) => {
   try {
-    const searches = await userUtils.getLastSearches(req.user_id);
-    res.status(200).send(searches);
+    await userUtils.clearViewedHistory(req.user_id);
+    res.status(200).send({ message: "Viewing history cleared successfully." });
   } catch (error) {
-    console.error("Error fetching search history:", error);
+    console.error("Error clearing viewing history:", error);
     next(error);
   }
 });
+
+
+/** Search history */
+router.post("/search-history", async (req, res, next) => {
+  try {
+    const { searchQuery, cuisine, diet, intolerance, limit } = req.body;
+
+    await userUtils.saveUserSearch(req.user_id, searchQuery, cuisine, diet, intolerance, limit);
+    res.status(200).send({ message: "Search saved successfully" });
+
+  } catch (error) {
+    console.error("Error saving search:", error);
+    next(error);
+  }
+});
+
+router.get("/search-history", async (req, res, next) => {
+  try {
+    const lastSearch = await userUtils.getLastSearchQuery(req.user_id);
+    if (lastSearch) {
+      res.status(200).send(lastSearch);
+    } else {
+      res.status(404).send({ message: "No recent search found for this user." });
+    }
+  } catch (error) {
+    console.error("Error retrieving search history:", error);
+    next(error);
+  }
+});
+
 
 /** Meal Plan */
-router.post("/mealPlan", async (req, res, next) => {
+
+/**
+ * Adds a new recipe to the user's meal plan
+ * Supports spoonacular, user recipe, or family recipe (one at a time)
+ */
+router.post("/meal-plan", async (req, res, next) => {
   try {
-    await userUtils.saveMealPlan(req.user_id, req.body.mealPlan);
-    res.status(200).send({ message: "Meal plan saved. Ready to cook!" });
+    const { spoonacularId, userRecipeId, familyRecipeId } = req.body;
+
+    // Basic validation: only one recipe type should be provided
+    const typesProvided = [spoonacularId, userRecipeId, familyRecipeId].filter(id => id !== undefined && id !== null);
+    if (typesProvided.length !== 1) {
+      return res.status(400).send({ error: "Only one recipe type must be specified (spoonacular, user, or family)." });
+    }
+
+    await userUtils.addMealPlan(req.user_id, { spoonacularId, userRecipeId, familyRecipeId });
+
+    res.status(200).send({ message: "Recipe added to meal plan." });
   } catch (error) {
-    console.error("Error saving meal plan:", error);
+    console.error("Error adding to meal plan:", error);
     next(error);
   }
 });
 
-router.get("/mealPlan", async (req, res, next) => {
+/**
+ * Retrieves the user's current meal plan entries
+ */
+router.get("/meal-plan", async (req, res, next) => {
   try {
-    const mealPlan = await userUtils.getMealPlan(req.user_id);
-    res.status(200).send(mealPlan);
+    const plans = await userUtils.getMealPlan(req.user_id);
+    res.status(200).send(plans);
   } catch (error) {
-    console.error("Error fetching meal plan:", error);
+    console.error("Error fetching meal plans:", error);
     next(error);
   }
 });
 
-/** Recipe progress */
-router.post("/progress", async (req, res, next) => {
+/**
+ * Deletes a specific meal plan entry
+ */
+router.delete("/meal-plan/:planId", async (req, res, next) => {
   try {
-    const { recipeId, stepNumber, status } = req.body;
-    await userUtils.updateRecipeProgress(req.user_id, recipeId, stepNumber, status);
-    res.status(200).send({ message: "Progress saved! Keep it up 💪" });
+    const planId = parseInt(req.params.planId);
+    if (isNaN(planId)) {
+      return res.status(400).send({ error: "Invalid plan ID" });
+    }
+
+    await userUtils.removeMealPlan(planId, req.user_id);
+    res.status(200).send({ message: "Meal plan removed successfully" });
   } catch (error) {
-    console.error("Error updating progress:", error);
+    console.error("Error deleting meal plan:", error);
     next(error);
   }
 });
 
-router.get("/progress/:recipeId", async (req, res, next) => {
+/**
+ * Deletes all meal plans for the logged-in user
+ */
+router.delete("/meal-plan", async (req, res, next) => {
   try {
-    const progress = await userUtils.getRecipeProgress(req.user_id, req.params.recipeId);
-    res.status(200).send(progress);
+    await userUtils.clearAllMealPlans(req.user_id);
+    res.status(200).send({ message: "All meal plans removed." });
   } catch (error) {
-    console.error("Error fetching recipe progress:", error);
+    console.error("Error clearing meal plans:", error);
     next(error);
   }
 });
 
-/** Custom & Family Recipes */
-router.post("/myRecipes", async (req, res, next) => {
+/**
+ * Gets the number of meal plans for the user
+ */
+router.get("/meal-plan/count", async (req, res, next) => {
   try {
-    await userUtils.createPersonalRecipe(req.user_id, req.body);
-    res.status(201).send({ message: "Your recipe was saved. Yum!" });
+    const count = await userUtils.getMealPlanCount(req.user_id);
+    res.status(200).send({ count });
   } catch (error) {
-    console.error("Error creating personal recipe:", error);
+    console.error("Error getting meal plan count:", error);
     next(error);
   }
 });
 
-router.post("/myFamilyRecipes", async (req, res, next) => {
-  try {
-    await userUtils.submitFamilyRecipe(req.user_id, req.body);
-    res.status(201).send({ message: "Family recipe saved with love 💕" });
-  } catch (error) {
-    console.error("Error saving family recipe:", error);
-    next(error);
-  }
-});
 
-router.get("/myRecipes", async (req, res, next) => {
-  try {
-    const recipes = await userUtils.getUserPersonalRecipes(req.user_id);
-    res.status(200).send(recipes);
-  } catch (error) {
-    console.error("Error fetching personal recipes:", error);
-    next(error);
-  }
-});
 
-router.get("/myFamilyRecipes", async (req, res, next) => {
-  try {
-    const recipes = await userUtils.getMyFamilyRecipes(req.user_id);
-    res.status(200).send(recipes);
-  } catch (error) {
-    console.error("Error fetching family recipes:", error);
-    next(error);
-  }
-});
 
 module.exports = router;

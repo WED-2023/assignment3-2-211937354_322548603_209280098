@@ -34,13 +34,17 @@ async function deleteUserRecipe(recipeId) {
     );
 }
 
-// Update a recipe's popularity score by ID
-async function updatePopularity(recipeId, newScore) {
-    await db.execute(
-        "UPDATE user_recipes SET popularity_score = ? WHERE recipe_id = ?",
-        [newScore, recipeId]
-    );
+
+// Increment the popularity score of a specific user-created recipe by 1
+async function incrementPopularity(recipeId) {
+    const query = `
+        UPDATE user_recipes
+        SET popularity_score = popularity_score + 1
+        WHERE recipe_id = ?
+    `;
+    await db.execute(query, [recipeId]);
 }
+
 
 // Update full recipe details by ID
 async function updateUserRecipe(recipeId, title, imageUrl, readyInMinutes, isVegan, isVegetarian, isGlutenFree, servings, summary, instructions) {
@@ -65,9 +69,9 @@ async function updateUserRecipe(recipeId, title, imageUrl, readyInMinutes, isVeg
 }
 
 module.exports = {
+    incrementPopularity,
     createUserRecipe,
     getUserRecipes,
     deleteUserRecipe,
-    updatePopularity,
     updateUserRecipe,
 };

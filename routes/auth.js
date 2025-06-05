@@ -1,78 +1,139 @@
-var express = require("express");
-var router = express.Router();
-const MySql = require("../routes/utils/MySql");
-const DButils = require("../routes/utils/DButils");
+const express = require("express");
 const bcrypt = require("bcrypt");
+const router = express.Router();
+const userDB = require("../sql scripts/data_access/user_db");
+const searchHistoryDB = require("../sql scripts/data_access/search_history_db");
 
-router.post("/Register", async (req, res, next) => {
+// Username validation function
+function validateUsername(username) {
+  // 3-8 characters
+  if (username.length < 3 || username.length > 8) {
+    return false;
+  }
+
+  // Only English letters (no numbers, no spaces, no special characters)
+  if (!/^[A-Za-z]+$/.test(username)) {
+    return false;
+  }
+
+  return true;
+}
+
+// Password validation function
+function validatePassword(password) {
+  // 5-10 characters
+  if (password.length < 5 || password.length > 10) {
+    return false;
+  }
+
+  // At least one number
+  if (!/\d/.test(password)) {
+    return false;
+  }
+
+  // At least one special character
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    return false;
+  }
+
+  return true;
+}
+
+// ======================= REGISTER =======================
+router.post("/register", async (req, res, next) => {
   try {
-    // parameters exists
-    // valid parameters
-    // username exists
-    let user_details = {
-      username: req.body.username,
-      firstname: req.body.firstname,
-      lastname: req.body.lastname,
-      country: req.body.country,
-      password: req.body.password,
-      email: req.body.email,
-      profilePic: req.body.profilePic
+    const { username, firstName, lastName, country, email, password } = req.body;
+
+    // Validate required fields
+    if (!username || !firstName || !lastName || !country || !email || !password) {
+      return res.status(400).send({ message: "All fields are required" });
     }
-    let users = [];
-    users = await DButils.execQuery("SELECT username from users");
 
-    if (users.find((x) => x.username === user_details.username))
-      throw { status: 409, message: "Username taken" };
+    // Validate username requirements
+    if (!validateUsername(username)) {
+      return res.status(400).send({
+        message: "Username must be 3-8 characters long and contain only English letters"
+      });
+    }
 
-    // add the new username
-    let hash_password = bcrypt.hashSync(
-      user_details.password,
-      parseInt(process.env.bcrypt_saltRounds)
-    );
+    // Validate password requirements
+    if (!validatePassword(password)) {
+      return res.status(400).send({
+        message: "Password must be 5-10 characters long, contain at least one number and one special character"
+      });
+    }
 
-    await DButils.execQuery(
-      `INSERT INTO users (username, firstname, lastname, country, password, email, profilePic) VALUES ('${user_details.username}', '${user_details.firstname}', '${user_details.lastname}',
-      '${user_details.country}', '${hash_password}', '${user_details.email}', '${user_details.profilePic}')`
-    );
-    res.status(201).send({ message: "user created", success: true });
-  } catch (error) {
-    next(error);
+    // Check if username already exists
+    const existingUser = await userDB.getUserByUsername(username);
+    if (existingUser) {
+      return res.status(409).send({ message: "Username already exists" });
+    }
+
+    // Hash the password
+    const passwordHash = bcrypt.hashSync(password, parseInt(process.env.BCRYPT_ROUNDS));
+
+    // Save the user
+    await userDB.createUser(username, firstName, lastName, country, email, passwordHash);
+
+    res.status(201).send({ message: "User registered successfully", success: true });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.post("/Login", async (req, res, next) => {
+// ======================== LOGIN =========================
+router.post("/login", async (req, res, next) => {
   try {
-    // check that username exists
-    const users = await DButils.execQuery("SELECT username FROM users");
-    if (!users.find((x) => x.username === req.body.username))
-      throw { status: 401, message: "Username or Password incorrect" };
+    const { username, password } = req.body;
 
-    // check that the password is correct
-    const user = (
-      await DButils.execQuery(
-        `SELECT * FROM users WHERE username = '${req.body.username}'`
-      )
-    )[0];
-
-    if (!bcrypt.compareSync(req.body.password, user.password)) {
-      throw { status: 401, message: "Username or Password incorrect" };
+    // Validate inputs
+    if (!username || !password) {
+      return res.status(400).send({ message: "Username and password are required" });
     }
 
-    // Set cookie
+    // Retrieve user from DB
+    const user = await userDB.getUserByUsername(username);
+
+    if (!user) {
+      return res.status(401).send({ message: "Invalid username or password" });
+    }
+
+    if (!user.hashedPassword || !bcrypt.compareSync(password, user.hashedPassword)) {
+      return res.status(401).send({ message: "Invalid username or password" });
+    }
+
+    // Start session
     req.session.user_id = user.user_id;
-    console.log("session user_id login: " + req.session.user_id);
 
-    // return cookie
-    res.status(200).send({ message: "login succeeded " , success: true });
-  } catch (error) {
-    next(error);
+    // Set login cookie
+    res.cookie("login", "true", {
+      sameSite: "none",
+      secure: true,
+    });
+
+    res.status(200).send({ message: "Login successful", success: true });
+  } catch (err) {
+    next(err);
   }
 });
 
-router.post("/Logout", function (req, res) {
-  console.log("session user_id Logout: " + req.session.user_id);
-  req.session.reset(); // reset the session info --> send cookie when  req.session == undefined!!
-  res.send({ success: true, message: "logout succeeded" });
+
+// ======================== LOGOUT ========================
+router.post("/logout", async (req, res, next) => {
+  try {
+    const userId = req.session.user_id;
+
+    // Clear search history of the user (according to system spec)
+    await searchHistoryDB.deleteSearchHistoryByUser(userId);
+
+    // Clear session and cookies
+    req.session.reset();
+    res.clearCookie("login");
+
+    res.send({ message: "Logout successful", success: true });
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;
