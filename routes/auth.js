@@ -1,8 +1,8 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const router = express.Router();
-const userDB = require("../sql scripts/data_access/user_db");
-const searchHistoryDB = require("../sql scripts/data_access/search_history_db");
+const userDB = require("../sql_scripts/data_access/user_db");
+const searchHistoryDB = require("../sql_scripts/data_access/search_history_db");
 
 // Username validation function
 function validateUsername(username) {

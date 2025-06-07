@@ -7,7 +7,6 @@ var httpsOptions = {
   key: fs.readFileSync(path.join(__dirname, "certificates/privkey.pem")),//server.key
   cert: fs.readFileSync(path.join(__dirname, "certificates/fullchain.pem")),//server.cert
 }
-
 /**
  * Get port from environment and store in Express.
  */
@@ -26,7 +25,6 @@ var server = https.createServer(httpsOptions, app);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
-
 /**
  * Normalize a port into a number, string, or false.
  */
@@ -37,12 +35,10 @@ function normalizePort(val) {
     // named pipe
     return val;
   }
-
   if (port >= 0) {
     // port number
     return port;
   }
-
   return false;
 }
 

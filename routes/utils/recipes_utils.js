@@ -1,9 +1,9 @@
-const userRecipesDB = require("../../sql scripts/data_access/user_recipes_db");
-const userRecipeIngredientsDB = require("../../sql scripts/data_access/user_recipe_ingredients_db");
-const familyRecipesDB = require("../../sql scripts/data_access/family_recipes_db");
-const familyRecipeIngredientsDB = require("../../sql scripts/data_access/family_recipe_ingredients_db");
-const recipeStepsDB = require("../../sql scripts/data_access/recipe_preparation_steps_db");
-const recipeProgressDB = require("../../sql scripts/data_access/recipe_preparation_progress_db");
+const userRecipesDB = require("../../sql_scripts/data_access/user_recipes_db");
+const userRecipeIngredientsDB = require("../../sql_scripts/data_access/user_recipe_ingredients_db");
+const familyRecipesDB = require("../../sql_scripts/data_access/family_recipes_db");
+const familyRecipeIngredientsDB = require("../../sql_scripts/data_access/family_recipe_ingredients_db");
+const recipeStepsDB = require("../../sql_scripts/data_access/recipe_preparation_steps_db");
+const recipeProgressDB = require("../../sql_scripts/data_access/recipe_preparation_progress_db");
 
 
 

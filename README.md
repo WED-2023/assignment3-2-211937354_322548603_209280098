@@ -215,3 +215,49 @@ The project integrates with the Spoonacular food API to allow external recipe se
     - `.DS_Store`
     - `certificates/`
 - Always `git pull` before `git push`
+
+
+
+
+---
+
+## 📌 Remote MySQL Notes
+
+> ⚠️ When deploying on the university remote server, the MySQL password is **different** from your local environment.
+
+On the remote machine, MySQL is pre-installed with the following credentials:
+
+```
+DB_USER=root
+DB_PASSWORD=@123123
+```
+
+✅ Update your `.env` file accordingly **before running the server remotely**.
+
+In your local machine, the password remains:
+
+```
+DB_PASSWORD=123456
+```
+
+📌 You can maintain **two separate `.env` files** (e.g., `.env_local`, `.env_remote`) and rename them based on where you're running.
+
+---
+
+## 🔀 Switching `main.js` Versions
+
+Because the backend behaves differently when run locally vs. remotely (with the university's HTTPS and frontend expectations), two versions of the `main.js` file are provided:
+
+| File                          | Use Case                | Notes |
+|-------------------------------|--------------------------|-------|
+| `Local_main_version(Original).txt`     | 🧪 Local testing (`node local_server.js`) | - Includes development settings like port 3000<br>- Used in local machines with local MySQL |
+| `remote_server_main_version.txt`       | 🌐 Remote deployment (`node server_connection.js`) | - Includes necessary tweaks for HTTPS & frontend integration<br>- Matches university server requirements |
+
+📥 To switch versions:
+1. Open the appropriate TXT file
+2. Copy-paste its contents into `main.js`
+3. Save and restart the server (local or remote)
+
+🚫 Do **not** commit `main.js` with remote-specific changes to GitHub unless needed by all teammates.
+
+---
