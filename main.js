@@ -6,7 +6,6 @@ var logger = require("morgan");
 const session = require("client-sessions");
 const DButils = require("./sql_scripts/db_connection");
 var cors = require("cors");
-
 var app = express();
 app.use(logger("dev")); //logger
 app.use(express.json()); // parse application/json
@@ -28,11 +27,11 @@ app.use(express.static(path.join(__dirname, "public"))); //To serve static files
 //local:
 
 //remote:
-app.use(express.static(path.join(__dirname, '../assignment-3-3-frontend/dist')));
+app.use(express.static(path.join(__dirname, '../assignment3_3-frontend-main/dist')));
 
 app.get("/", function (req, res) {
     //remote:
-    res.sendFile(path.join(__dirname, '../assignment-3-3-frontend/dist/index.html'));
+    res.sendFile(path.join(__dirname, '../assignment3_3-frontend-main/dist/index.html'));
     //local:
 
 });
