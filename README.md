@@ -5,11 +5,20 @@
 - **Liel Parparov** — 211937354
 - **Noa Shvets** — 322548603
 
-## 🧾 Project Description
-This web system was developed as part of a software engineering project. It centers around a full-featured recipe management application, supporting:
-- Personal, family, and third-party (Spoonacular) recipes
-- User registration, login, favorites, views, and history
-- Server-side and database operations via Node.js and MySQL
+## 🧾 Description
+
+This project is a recipe management platform that supports:
+- 👤 Personal recipes
+- 👨‍👩‍👧‍👦 Family recipes
+- 🌐 External recipes via the Spoonacular API
+
+It includes features such as:
+- User login and authentication
+- Favorites and search history
+- Recently viewed recipes
+- Step-by-step preparation tracking
+- Weekly meal plans
+
 
 The project is divided into two main stages:
 1. **Stage 1 – API Specification**
@@ -44,26 +53,50 @@ In this phase we implemented a fully working backend with real-time interaction 
 - **cors** – Enables cross-origin requests
 - **Postman & SwaggerHub** – For API testing and documentation
 - **DataGrip / WebStorm** – IDEs used for development and database management
+- **Other tools**: axios, morgan
 
-### 🧭 Code Structure Overview
-- All SQL schemas defined under `sql_scripts/schema.sql`
-- Initial test data loaded from `sql_scripts/initial_data.sql`
-- DB connection logic in `sql_scripts/db_connection.js`
-- `local_server.js` handles HTTP development on port 3000
-- `server_connection.js` launches HTTPS server with certificate
-- `routes/` contains route handlers and utility functions
+### 📁 Project Structure
 
-> We separated `local_server.js` and `server_connection.js` to allow for easy switching between local HTTP development and global HTTPS deployment.
+```
+.
+├── routes/                          # API entry points
+│   ├── auth.js                      # Login & registration
+│   ├── user.js                      # Favorites, views, meal plan
+│   ├── recipes.js                   # Personal/family recipe logic
+│   ├── recipes_combined_utils.js   # Multi-source recipe merger
+│   ├── utils/                       # Logic for users & recipes
+│   ├── middleware/                 # Session verification
+│   └── API_spoonacular/            # All logic for 3rd-party API
+│       ├── spooncular.js
+│       ├── spooncular_actions.js
+│       ├── spooncular_connect.js
+│       └── spooncular_slices.js
+│
+├── sql scripts/
+│   ├── schema.sql                  # SQL schema (11 tables)
+│   ├── initial_data.sql            # Optional data seeds
+│   └── data_access/                # JS-based DB interface (1 file per table)
+│
+├── .env                            # API key, DB credentials
+├── Dockerfile                      # Optional deployment container
+├── local_server.js                 # HTTP version (dev)
+├── server_connection.js           # HTTPS version (deployment)
+├── package.json                    # Dependencies
+└── README.md                       # This file
+```
+
+
+We separated `local_server.js` and `server_connection.js` to allow for easy switching between local HTTP development and global HTTPS deployment.
 
 ---
 
-## 🧱 Local Setup Instructions
+### 🧱 Local Setup Instructions
 
-### ✅ Requirements
+#### ✅ Requirements
 - MySQL 8.x (default port 3306, password: 123456)
 - Node.js 18.x (includes `npm`)
 
-### 📦 Installation Steps
+#### 📦 Installation Steps
 
 1. **Clone the project** from GitHub
 2. **Install dependencies**:
@@ -136,37 +169,42 @@ They can simply access the server using the following URL from any browser or to
 
 ---
 
-### 🛠 Recommended Workflow for Server Deployment
+## 🗃️ SQL Schema Overview
 
-In order to run the server remotely, the code must be physically present on the remote machine (the university's assigned IP).
+The schema includes **11 tables**, split between required and bonus.
+Each table has its own JS access layer in `data_access/`, and each route layer delegates work through `utils/`.
 
-Recommended steps:
+📁 See full explanation in: `sql_scripts/README.md`
 
-1. Work locally on your machine (e.g., using WebStorm or VSCode)
-2. Commit and push your changes to GitHub:
-   ```bash
-   git add .
-   git commit -m "Update project files"
-   git push
-   ```
-3. Open **Remote Desktop** and pull the latest changes:
-   ```bash
-   git pull
-   ```
-4. Start the HTTPS server:
-   ```bash
-   node server_connection.js
-   ```
-
-✅ Make sure to repeat steps 2–4 whenever updates are made locally.
 
 ---
 
-## 🗃️ SQL Schema Overview
+## 🌐 Spoonacular API
 
-Our database includes 11 normalized tables. Each is documented with purpose, keys, constraints, and relationships.
+The project integrates with the Spoonacular food API to allow external recipe searches.
 
-📁 See full explanation in: `sql_scripts/README.md`
+- Users can:
+    - Search for recipes by keyword, diet, cuisine
+    - View random recipes
+    - View detailed recipe info by ID
+- All retrieved recipes are sliced to store only the required fields
+- If a user is logged in, the system logs:
+    - Search history (`search_history`)
+    - Viewed recipes (`recipe_views`)
+    - Favorites (`user_favorites`)
+
+📌 External recipes are **not fully stored** – only metadata is saved.
+
+
+
+---
+
+## ✅ Authentication
+
+- Login and signup are done via `auth.js`
+- Sessions are stored in memory using `express-session`
+- Only some routes require login (`verifyLogin.js` middleware)
+- Spoonacular routes allow guest access (but log interactions only for logged-in users)
 
 ---
 

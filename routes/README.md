@@ -1,107 +1,79 @@
-# 📁 Routes & Data Access Structure
+# 📁 routes/ – Routing & Request Handling Layer 
 
-This document outlines the structure, responsibilities, and design considerations behind the routing layer (`routes/`) of our system. It explains the separation between `user.js`, `recipes.js`, and `auth.js`, the supporting logic files in `utils/`, and the new middleware authentication mechanism.
-
----
-
-## 🧩 Purpose of Each File
-
-| File                     | Purpose |
-|--------------------------|---------|
-| **user.js / user_utils.js**      | Manages user-related actions (favorites, views, history, meal plans). Requires active session via `verifyLogin`. |
-| **recipes.js / recipes_utils.js** | Handles all types of recipes (Spoonacular, user, family). Fetches, aggregates, and formats recipe data. |
-| **auth.js**              | Handles login & registration. Grants session via `req.session.user_id`. First access point to the `users` table. |
-| **verifyLogin.js**       | Middleware for validating active user session. Shared by `user.js` and `recipes.js`. Validates user ID from session and injects `req.user_id`. |
-| **DButils.js**           | Legacy query wrapper with transaction support. Provided by course staff. Still used in `verifyLogin.js` to avoid breaking compatibility. |
-| **MySql.js**             | Legacy low-level pool manager for `DButils.js`. Manages raw connection/query/release flow. |
-| **db_connection.js**     | Modern, central DB access file used by all `data_access/*.js` modules. Wraps connection pool and exports query functions. |
-### 🔁How They Interact
-`DButils.js` and `MySql.js` were included in the starter project. We replaced them with `db_connection.js` for modularity. However, `verifyLogin.js` still uses `DButils.js`, so we kept both legacy files to maintain compatibility.
+This folder manages the **main routing layer** of the backend – defining which files expose endpoints, handle user sessions, access the database, or communicate with external APIs like Spoonacular.
 
 ---
 
-## 🧾 Responsibilities Breakdown
+## 📂 Structure Summary
 
-### 🔐 `auth.js`
-- Handles login and registration only.
-- Does **not** assume the user is logged in.
-- Uses `user_db.js` internally (insert/select).
-
-### 👤 `user.js`
-- Requires login (via middleware).
-- Handles all personal actions for a logged-in user:
-  - Favorites (add/remove/list)
-  - Views history
-  - Meal plans
-  - Personal/family recipe creation
-- Uses logic from `user_utils.js`.
-
-### 🍲 `recipes.js`
-- Requires login (via middleware).
-- Handles general recipe views and exploration.
-- Uses logic from `recipes_utils.js`.
-
----
-
-## 🔒 Password Security with bcrypt
-
-### 🔑 How bcrypt Works in Our System
-
-**During Registration (`auth.js`):**
-- We use `bcrypt.hashSync(password, parseInt(process.env.BCRYPT_ROUNDS))` to encrypt the password
-- The `BCRYPT_ROUNDS` environment variable determines the encryption strength level
-- The encrypted password (hash) is stored in the database
-
-**During Login (`auth.js`):**
-- We use `bcrypt.compareSync(password, user.hashedPassword)` to verify the password
-- `password` = the plain text password entered by the user
-- `user.hashedPassword` = the encrypted password from the database
-- **Important:** We don't need to specify the encryption rounds again because bcrypt automatically detects the encryption level from the stored hash itself
-
-### 🛡️ Security Benefits
-- The actual encryption strength (`BCRYPT_ROUNDS=11`) is hidden in the `.env` file
-- Users and potential attackers cannot see the encryption level from the code
-- bcrypt automatically handles the complexity of comparing plain text against encrypted passwords
+```
+routes/
+├── auth.js                     # Login & registration routes
+├── user.js                     # Routes for favorites, views, meal plan, etc.
+├── recipes.js                  # Routes for personal and family recipe actions
+├── recipes_combined_utils.js   # Smart integration layer for unified recipe display
+├── utils/
+│   ├── recipes_utils.js        # Handles all recipe-related DB operations
+│   └── user_utils.js           # Handles user data: favorites, views, meal plan
+├── middleware/
+│   └── verifyLogin.js          # Middleware to ensure user session is valid
+└── API_spoonacular/
+    ├── spooncular.js           # Defines routes for Spoonacular API calls
+    ├── spooncular_actions.js   # Handles slicing + DB logging for Spoonacular responses
+    ├── spooncular_connect.js   # Axios layer for connecting to Spoonacular API
+    └── spooncular_slices.js    # Filters raw Spoonacular responses per use-case
+```
 
 ---
 
-## 🔄 Middleware Authentication – `verifyLogin.js`
+## 🔁 Routing Logic
 
-### ✅ Why Middleware?
-To avoid duplicating session validation in every single route – we centralize login verification using Express middleware.
-
-### 🔁 How It Works
-- Both `user.js` and `recipes.js` include:
-  ```js
-  const verifyLogin = require("../middleware/verifyLogin");
-  router.use(verifyLogin);
-  ```
-- This ensures **all routes below it** will execute `verifyLogin` **before** reaching their handler.
-- The file `verifyLogin.js` performs:
-  - Checks that `req.session.user_id` exists.
-  - Validates the user exists in the DB.
-  - Adds `req.user_id` for downstream usage.
-
-### 🔄 Trigger Frequency
-Middleware is **executed per request**. So if a user:
-- Marks a favorite (POST)
-- Then immediately deletes one (DELETE)
-
-Each call will re-run `verifyLogin`. This is essential for secure access.
+- `auth.js` – Session-based login and signup
+- `user.js` – Protected routes for managing views, favorites, meal plans
+- `recipes.js` – Accessing and manipulating personal/family recipes
+- `spooncular.js` – Open routes to search/view public recipes via Spoonacular
+- `middleware/verifyLogin.js` – Attaches `req.user` to requests, or blocks them if unauthenticated
 
 ---
 
-## 🧠 Key Design Insight
+## 🧾 Authentication Flow
 
-- `auth.js` is about *obtaining* a session.
-- `verifyLogin.js` is about *validating* a session.
-
-This distinction avoids confusion and improves maintainability.
+### `verifyLogin.js`
+- Checks if session is active (`req.session.user_id`)
+- Validates that the user exists in the DB
+- If valid → injects `req.user.user_id` into downstream handlers
+- Used explicitly in `user.js`, `recipes.js`, **not** in Spoonacular routes (which allow guest access)
 
 ---
-## ✅ Summary Table – Data Access Ownership
 
-This table defines **which file** is responsible for each `data_access` module:
+## 🔄 Guest-Friendly Routing
+
+Some actions like:
+- Viewing a Spoonacular recipe
+- Performing a public search (`/spoonacular/search/query`)
+- Fetching random recipes
+
+... do **not require login**, but will **log actions** (e.g., search, view) if the user is logged in.
+
+---
+
+## 🧠 Special Logic: `recipes_combined_utils.js`
+
+This file plays a **central role** when displaying multiple recipes together from **mixed sources**:
+- It takes an array of `{ source, id }` references (e.g., `"spoonacular"`, `"user"`, `"family"`)
+- It decides whether to fetch the recipe from Spoonacular, the user DB, or family recipes
+- It's used in features like:
+  - Viewing all favorites
+  - Viewing recent recipe views
+  - Viewing meal plans
+
+It orchestrates logic across `spoonacular_actions.js`, `user_utils.js`, and `recipes_utils.js` to return unified recipe objects for the frontend.
+
+📌 Without this file, you would have to manually determine the source of each recipe and call the correct fetch function.
+
+---
+
+## ✅ Responsibility by Table (Cross-File Map)
 
 | Database Table               | user.js / user_utils.js | recipes.js / recipes_utils.js | auth.js |
 |------------------------------|--------------------------|-------------------------------|---------|
@@ -110,9 +82,16 @@ This table defines **which file** is responsible for each `data_access` module:
 | recipe_views                 | ✅                        | ❌                            | ❌      |
 | search_history               | ✅                        | ❌                            | ❌      |
 | meal_plans                   | ✅                        | ❌                            | ❌      |
-| user_recipes                 | ❌ (Only for 1 scenario)  | ✅                            | ❌      |
+| user_recipes                 | ❌                        | ✅                            | ❌      |
 | user_recipe_ingredients      | ❌                        | ✅                            | ❌      |
 | family_recipes               | ❌                        | ✅                            | ❌      |
 | family_recipe_ingredients    | ❌                        | ✅                            | ❌      |
 | recipe_preparation_steps     | ❌                        | ✅                            | ❌      |
 | recipe_preparation_progress  | ❌                        | ✅                            | ❌      |
+
+---
+
+## 🔑 Notes
+
+- No route file talks directly to the DB – always through `*_utils.js`
+- Only `recipes_combined_utils.js` supports hybrid queries across sources (e.g. meal plan)

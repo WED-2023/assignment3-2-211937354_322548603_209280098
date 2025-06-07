@@ -1,96 +1,57 @@
-require("dotenv").config();
-//#region express configures
-var express = require("express");
-var path = require("path");
-var logger = require("morgan");
+const express = require("express");
+const app = express();
+const cors = require("cors");
 const session = require("client-sessions");
-const DButils = require("./routes/utils/DButils");
-var cors = require('cors')
+const DButils = require("./sql scripts/db_connection");
 
-var app = express();
-app.use(logger("dev")); //logger
-app.use(express.json()); // parse application/json
+// Middleware
+app.use(express.json());
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
+
 app.use(
-  session({
-    cookieName: "session", // the cookie key name
-    //secret: process.env.COOKIE_SECRET, // the encryption key
-    secret: "template", // the encryption key
-    duration: 24 * 60 * 60 * 1000, // expired after 20 sec
-    activeDuration: 1000 * 60 * 5, // if expiresIn < activeDuration,
-    cookie: {
-      httpOnly: false,
-    }
-    //the session will be extended by activeDuration milliseconds
-  })
+    session({
+        cookieName: "session",
+        secret: "template",     //secret: process.env.COOKIE_SECRET,
+        duration: 24 * 60 * 60 * 1000,
+        activeDuration: 1000 * 60 * 5,
+        cookie: {
+            httpOnly: false,
+        }
+    })
 );
-app.use(express.urlencoded({ extended: false })); // parse application/x-www-form-urlencoded
-app.use(express.static(path.join(__dirname, "public"))); //To serve static files such as images, CSS files, and JavaScript files
-//local:
-app.use(express.static(path.join(__dirname, "dist")));
-//remote:
-// app.use(express.static(path.join(__dirname, '../assignment-3-3-frontend/dist')));
 
-app.get("/",function(req,res)
-{ 
-  //remote: 
-  // res.sendFile(path.join(__dirname, '../assignment-3-3-frontend/dist/index.html'));
-  //local:
-  res.sendFile(__dirname+"/index.html");
-
+// Middleware to extract user_id from session if valid
+app.use(async function (req, res, next) {
+    if (req.session && req.session.user_id) {
+        try {
+            const users = await DButils.execQuery("SELECT user_id FROM users");
+            if (users.find((x) => x.user_id === req.session.user_id)) {
+                req.user_id = req.session.user_id;
+            }
+        } catch (err) {
+            // Optionally log error
+        }
+    }
+    next();
 });
 
-// app.use(cors());
-// app.options("*", cors());
-
-// const corsConfig = {
-//   origin: true,
-//   credentials: true
-// };
-
-// app.use(cors(corsConfig));
-// app.options("*", cors(corsConfig));
-
-var port = process.env.PORT || "80"; //local=3000 remote=80
-//#endregion
+// Route files
 const user = require("./routes/user");
 const recipes = require("./routes/recipes");
 const auth = require("./routes/auth");
+const spoonacular = require("./routes/API_spooncular/spooncular");
 
+app.use("/api/users", user);
+app.use("/api/recipes", recipes);
+app.use("/api/auth", auth);
+app.use("/api/spoonacular", spoonacular);
 
-//#region cookie middleware
-app.use(function (req, res, next) {
-  if (req.session && req.session.user_id) {
-    DButils.execQuery("SELECT user_id FROM users")
-      .then((users) => {
-        if (users.find((x) => x.user_id === req.session.user_id)) {
-          req.user_id = req.session.user_id;
-        }
-        next();
-      })
-      .catch((error) => next());
-  } else {
-    next();
-  }
-});
-//#endregion
-
-// ----> For cheking that our server is alive
-app.get("/alive", (req, res) => res.send("I'm alive"));
-
-// Routings
-app.use("/users", user);
-app.use("/recipes", recipes);
-app.use("/", auth);
-
-
-
-
-
-
-// Default router
-app.use(function (err, req, res, next) {
-  console.error(err);
-  res.status(err.status || 500).send({ message: err.message, success: false });
+// Alive check
+app.get("/alive", (req, res) => {
+    res.send("I'm alive");
 });
 
 module.exports = app;

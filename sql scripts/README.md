@@ -1,21 +1,62 @@
-# 🗃️ SQL Scripts – Initialization & Schema Documentation
+# 🗃️ SQL Scripts & Data Access Layer
 
-This directory contains all SQL-related logic for the project, including:
-- Table creation script (`schema.sql`)
-- Test data insertion script (`initial_data.sql`)
-- Connection configuration (`db_connection.js`)
-- Database explanation and modeling notes
+This folder contains both the **SQL schema and seed scripts** (`schema.sql`, `initial_data.sql`) and the **Node.js layer for querying the DB** (`data_access/`).
+
+The system uses clear separation between:
+- 🧱 SQL definitions (tables, FKs)
+- ⚙️ Programmatic logic (CRUD access)
 
 ---
 
-## ⚙️ Files Overview
+## 📦 Folder Structure
 
-| File                    | Description                                  |
-|-------------------------|----------------------------------------------|
-| `schema.sql`            | Creates all 11 tables (with `USE recipes_db`) |
-| `initial_data.sql`      | Inserts sample users, recipes, ingredients    |
-| `db_connection.js`      | MySQL connection pool using dotenv            |
-| `README.md`             | You are here – full schema documentation      |
+```
+sql scripts/
+├── schema.sql                  # Creates the entire schema (11 tables)
+├── initial_data.sql           # Optional: populates DB with sample users & recipes
+├── db_connection.js        # Pooled MySQL connection (dotenv config)
+└── data_access/
+    ├── user_db.js              # Handles basic user creation & lookup
+    ├── user_favorites_db.js    # Favorites-related queries
+    ├── recipe_views_db.js      # Tracks recipe views (Spoonacular)
+    ├── search_history_db.js    # Logs search filters
+    ├── meal_plans_db.js        # User meal planning (multi-source)
+    ├── recipe_preparation_progress_db.js
+    ├── recipe_preparation_steps_db.js
+    ├── user_recipes_db.js
+    ├── user_recipe_ingredients_db.js
+    ├── family_recipes_db.js
+    └── family_recipe_ingredients_db.js
+```
+
+---
+
+## 🧩 JS ↔ SQL Integration: `data_access` Layer
+
+The directory `sql_scripts/data_access/` holds all logic for interacting with the database programmatically via **Node.js**.
+
+Each file represents a single table and provides **CRUD operations** written in JavaScript using async/await with MySQL.
+
+For example:
+
+```js
+const db = require("../db_connection");
+```
+- This line imports a pooled MySQL connection (from `db_connection.js`)
+- It automatically uses credentials from the `.env` file
+- It ensures the system doesn’t open or close connections per request
+
+Each file ends with:
+
+```js
+module.exports = {
+  functionName1,
+  functionName2,
+  ...
+}
+```
+- This exposes the listed functions to other parts of the project
+- For example: your route handlers (e.g., `routes/user.js`) can call `createUser(...)` directly
 ---
 
 ## 📌 Setup Instructions
@@ -31,11 +72,11 @@ DB_NAME=recipes_db
 ```
 
 2. Open `schema.sql` and run it:
-   - The script contains a `USE recipes_db;` statement
-   - If the database does **not** yet exist, uncomment the first line:
-     ```sql
-     CREATE DATABASE IF NOT EXISTS recipes_db;
-     ```
+    - The script contains a `USE recipes_db;` statement
+    - If the database does **not** yet exist, uncomment the first line:
+      ```sql
+      CREATE DATABASE IF NOT EXISTS recipes_db;
+      ```
 
 3. Execute `initial_data.sql` to populate example rows for testing.
 
@@ -168,6 +209,13 @@ Each table below includes:
 
 ---
 
+## 🧠 Special Logic Notes
+
+- `user_favorites`, `recipe_views`, and `search_history` only apply to **Spoonacular** recipes.
+- Internal recipes (`user_recipes`, `family_recipes`) are accessed via their own access files and contain richer structure (ingredients, steps, etc.)
+- `meal_plans` is **multi-source**, and its entries may point to any of: spoonacular ID, user ID, or family ID – logic handled in higher layers.
+- The `recipe_preparation_progress` table includes dynamic tracking per user and recipe – great for interactive UIs.
+
 ### 🔍 Search History vs. Recipe Views
 
 While both tables record user interactions, they serve distinct purposes:
@@ -179,40 +227,13 @@ This separation allows the system to analyze search intent vs. actual behavior.
 
 ---
 
-## 🧩 JS ↔ SQL Integration: `data_access` Layer
+## ✅ Summary
 
-The directory `sql_scripts/data_access/` holds all logic for interacting with the database programmatically via **Node.js**.
+The `data_access` layer wraps raw SQL into clean, reusable functions.
 
-Each file represents a single table and provides **CRUD operations** written in JavaScript using async/await with MySQL.
+It guarantees:
+- Code clarity
+- Database consistency
+- No hardcoded logic outside
 
-For example:
-
-```js
-const db = require("../db_connection");
-```
-- This line imports a pooled MySQL connection (from `db_connection.js`)
-- It automatically uses credentials from the `.env` file
-- It ensures the system doesn’t open or close connections per request
-
-Each file ends with:
-
-```js
-module.exports = {
-  functionName1,
-  functionName2,
-  ...
-}
-```
-- This exposes the listed functions to other parts of the project
-- For example: your route handlers (e.g., `routes/user.js`) can call `createUser(...)` directly
-
-🧪 All data access files are fully tested and mapped to schema constraints and validations.
-
-## 📌 Summary
-
-The database was carefully normalized and designed to:
-- Avoid redundancy
-- Enable expansion (bonus features)
-- Remain scalable for future extensions
-
-Each FK and schema element reflects a functional or UI requirement in the project.
+Everything from saving favorites, logging views, planning meals, and tracking recipe steps is centralized here.

@@ -3,6 +3,8 @@ const favoritesDB = require("/sql scripts/data_access/user_favorites_db");
 const viewsDB = require("/sql scripts/data_access/recipe_views_db");
 const searchHistoryDB  = require("/sql scripts/data_access/search_history_db");
 const mealPlanDB = require("/sql scripts/data_access/meal_plans_db");
+const recipeCombiner = require("../recipes_combined_utils");
+
 
 
 
@@ -24,10 +26,11 @@ async function removeFavorite(userId, recipeId) {
 }
 
 /**
- * Gets all favorite recipes for the user
+ * Gets all favorite recipes for the user with full details
  */
 async function getFavoriteRecipes(userId) {
-    return await favoritesDB.getFavoritesByUserId(userId);
+    const rawFavorites = await favoritesDB.getFavoritesByUserId(userId);
+    return await recipeCombiner.enrichRecipesFromDB(rawFavorites, "source", "spoonacular_recipe_id", userId);
 }
 
 /**
@@ -38,16 +41,17 @@ async function addViewedRecipe(userId, { spoonacularId = null, userRecipeId = nu
 
     // Increase popularity only for local user-created recipes
     if (userRecipeId) {
-        await recipesUtils.incrementUserRecipePopularity(userRecipeId);
+        await recipesUtils. incrementUserRecipePopularity(userRecipeId);
     }
 }
 
 
 /**
- * Returns last 3 viewed recipes
+ * Returns last 3 viewed recipes with full details
  */
 async function getViewedRecipes(userId) {
-    return await viewsDB.getViewsByUserId(userId);
+    const rawViews = await viewsDB.getViewsByUserId(userId);
+    return await recipeCombiner.enrichRecipesFromDB(rawViews, "source", "recipe_id", userId);
 }
 
 
@@ -90,11 +94,13 @@ async function addMealPlan(userId, { spoonacularId = null, userRecipeId = null, 
 }
 
 /**
- * Retrieves all meal plan entries for the user
+ * Retrieves all meal plan entries for the user with full recipe details
  */
 async function getMealPlan(userId) {
-    return await mealPlanDB.getMealPlansByUserId(userId);
+    const rawPlan = await mealPlanDB.getMealPlansByUserId(userId);
+    return await recipeCombiner.enrichRecipesFromDB(rawPlan, "source", "recipe_id", userId);
 }
+
 
 /**
  * Removes a meal plan entry by its ID and updates the order of the rest

@@ -5,7 +5,9 @@ const familyRecipeIngredientsDB = require("../../sql scripts/data_access/family_
 const recipeStepsDB = require("../../sql scripts/data_access/recipe_preparation_steps_db");
 const recipeProgressDB = require("../../sql scripts/data_access/recipe_preparation_progress_db");
 
-const api_domain = "https://api.spoonacular.com/recipes";
+
+
+
 
 /**
  * Add a new personal recipe to the user's collection
