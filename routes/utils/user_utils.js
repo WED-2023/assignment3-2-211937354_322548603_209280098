@@ -1,8 +1,8 @@
 const recipesUtils = require("./recipes_utils");
-const favoritesDB = require("/sql_scripts/data_access/user_favorites_db");
-const viewsDB = require("/sql_scripts/data_access/recipe_views_db");
-const searchHistoryDB  = require("/sql_scripts/data_access/search_history_db");
-const mealPlanDB = require("/sql_scripts/data_access/meal_plans_db");
+const favoritesDB = require("../../sql_scripts/data_access/user_favorites_db");
+const viewsDB = require("../../sql_scripts/data_access/recipe_views_db");
+const searchHistoryDB  = require("../../sql_scripts/data_access/search_history_db");
+const mealPlanDB = require("../../sql_scripts/data_access/meal_plans_db");
 
 /** In Remote Server Replace lines 2-5 with :
 const favoritesDB = require("../../sql_scripts/data_access/user_favorites_db");

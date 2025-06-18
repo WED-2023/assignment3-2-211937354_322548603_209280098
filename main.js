@@ -6,6 +6,7 @@ var logger = require("morgan");
 const session = require("client-sessions");
 const DButils = require("./sql_scripts/db_connection");
 var cors = require("cors");
+
 var app = express();
 app.use(logger("dev")); //logger
 app.use(express.json()); // parse application/json
@@ -25,15 +26,15 @@ app.use(
 app.use(express.urlencoded({ extended: false })); // parse application/x-www-form-urlencoded
 app.use(express.static(path.join(__dirname, "public"))); //To serve static files such as images, CSS files, and JavaScript files
 //local:
-
+app.use(express.static(path.join(__dirname, "dist")));
 //remote:
-app.use(express.static(path.join(__dirname, '../assignment3_3-frontend-main/dist')));
+// app.use(express.static(path.join(__dirname, '../assignment-3-3-frontend/dist')));
 
 app.get("/", function (req, res) {
     //remote:
-    res.sendFile(path.join(__dirname, '../assignment3_3-frontend-main/dist/index.html'));
+    // res.sendFile(path.join(__dirname, '../assignment-3-3-frontend/dist/index.html'));
     //local:
-
+    res.sendFile(__dirname + "/index.html");
 });
 
 // app.use(cors());
@@ -47,7 +48,7 @@ app.get("/", function (req, res) {
 // app.use(cors(corsConfig));
 // app.options("*", cors(corsConfig));
 
-var port = process.env.PORT || "80"; //local=3000 remote=80
+var port = process.env.PORT || "3000"; //local=3000 remote=80
 //#endregion
 
 const user = require("./routes/user");
@@ -87,4 +88,13 @@ app.use(function (err, req, res, next) {
     res.status(err.status || 500).send({ message: err.message, success: false });
 });
 
-module.exports = app;
+const server = app.listen(port, () => {
+    console.log(`Server listen on port ${port}`);
+});
+
+process.on("SIGINT", function () {
+    if (server) {
+        server.close(() => console.log("server closed"));
+    }
+    process.exit();
+});

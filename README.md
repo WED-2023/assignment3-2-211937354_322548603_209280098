@@ -79,14 +79,11 @@ In this phase we implemented a fully working backend with real-time interaction 
 │
 ├── .env                            # API key, DB credentials
 ├── Dockerfile                      # Optional deployment container
-├── local_server.js                 # HTTP version (dev)
 ├── server_connection.js           # HTTPS version (deployment)
 ├── package.json                    # Dependencies
 └── README.md                       # This file
 ```
 
-
-We separated `local_server.js` and `server_connection.js` to allow for easy switching between local HTTP development and global HTTPS deployment.
 
 ---
 
@@ -125,7 +122,7 @@ SPOONACULAR_API_KEY=your_api_key_here
 
 5. **Run local server (port 3000):**
    ```bash
-   node local_server.js
+   node main.js
    ```
 
 6. **Check Swagger UI:** [http://localhost:3000](http://localhost:3000)
@@ -248,9 +245,9 @@ DB_PASSWORD=123456
 
 Because the backend behaves differently when run locally vs. remotely (with the university's HTTPS and frontend expectations), two versions of the `main.js` file are provided:
 
-| File                          | Use Case                | Notes |
-|-------------------------------|--------------------------|-------|
-| `Local_main_version(Original).txt`     | 🧪 Local testing (`node local_server.js`) | - Includes development settings like port 3000<br>- Used in local machines with local MySQL |
+| File                          | Use Case                                           | Notes |
+|-------------------------------|----------------------------------------------------|-------|
+| `Local_main_version(Original).txt`     | 🧪 Local testing (`node main.js`)                  | - Includes development settings like port 3000<br>- Used in local machines with local MySQL |
 | `remote_server_main_version.txt`       | 🌐 Remote deployment (`node server_connection.js`) | - Includes necessary tweaks for HTTPS & frontend integration<br>- Matches university server requirements |
 
 📥 To switch versions:
