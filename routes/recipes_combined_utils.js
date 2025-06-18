@@ -1,7 +1,3 @@
-const recipesUtils = require("./utils/recipes_utils");
-const spooncularActions =  require("./API_spooncular/spooncular_actions");
-
-
 
 /**
  * Given an array of recipe identifiers, fetch full details from appropriate sources
@@ -13,6 +9,8 @@ const spooncularActions =  require("./API_spooncular/spooncular_actions");
  * @returns {Promise<Array>} Array of full recipe detail objects
  */
 async function getMultipleRecipeDetails(recipes, userId) {
+    const spooncularActions =  require("./API_spooncular/spooncular_actions");
+    const recipesUtils = require("./utils/recipes_utils");
     const results = [];
 
     for (const recipe of recipes) {

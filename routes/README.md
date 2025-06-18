@@ -90,6 +90,52 @@ It orchestrates logic across `spoonacular_actions.js`, `user_utils.js`, and `rec
 | recipe_preparation_progress  | ❌                        | ✅                            | ❌      |
 
 ---
+### ⚠️ Circular Dependency Handling
+
+In the `routes/` layer of the project, several utility modules interact with one another. However, due to complex interdependencies, loading all required modules at the top of the file may result in a **circular dependency** – where one module depends on another that (directly or indirectly) depends back on the first one.
+
+To avoid this, `require()` calls for certain modules (specifically utility modules) are **placed inside the functions that use them** instead of at the top of the file.
+
+---
+
+#### ⚙️ Dependency Flow
+
+```
+spooncular_actions
+      ↓
+   user_utils
+    ↙       ↘
+recipes   recipes_combined_utils
+    ↑           ↓
+    └──────── spooncular_actions
+```
+
+This diagram shows how:
+- `spooncular_actions.js` uses `user_utils.js`
+- `user_utils.js` depends on both `recipes_utils.js` and `recipes_combined_utils.js`
+- `recipes_combined_utils.js`, in turn, imports `spooncular_actions.js` again
+
+---
+
+#### ✅ Example (Inside `spooncular_actions.js`)
+
+Instead of:
+```js
+const userUtils = require("../utils/user_utils");
+```
+
+We use:
+```js
+function fetchRecipesBySearch(...) {
+    const userUtils = require("../utils/user_utils");
+    ...
+}
+```
+
+This ensures the module loads only **after** its dependencies are ready.
+
+
+---
 
 ## 🔑 Notes
 

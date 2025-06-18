@@ -1,4 +1,3 @@
-const recipesUtils = require("./recipes_utils");
 const favoritesDB = require("../../sql_scripts/data_access/user_favorites_db");
 const viewsDB = require("../../sql_scripts/data_access/recipe_views_db");
 const searchHistoryDB  = require("../../sql_scripts/data_access/search_history_db");
@@ -11,7 +10,6 @@ const searchHistoryDB  = require("../../sql_scripts/data_access/search_history_d
 const mealPlanDB = require("../../sql_scripts/data_access/meal_plans_db");
 **/
 
-const recipeCombiner = require("../recipes_combined_utils");
 
 
 
@@ -37,6 +35,7 @@ async function removeFavorite(userId, recipeId) {
  * Gets all favorite recipes for the user with full details
  */
 async function getFavoriteRecipes(userId) {
+    const recipeCombiner = require("../recipes_combined_utils");
     const rawFavorites = await favoritesDB.getFavoritesByUserId(userId);
     return await recipeCombiner.enrichRecipesFromDB(rawFavorites, "source", "spoonacular_recipe_id", userId);
 }
@@ -45,6 +44,7 @@ async function getFavoriteRecipes(userId) {
  * Adds a view log for a recipe and increases popularity score if it's a local recipe
  */
 async function addViewedRecipe(userId, { spoonacularId = null, userRecipeId = null, familyRecipeId = null }) {
+    const recipesUtils = require("./recipes_utils");
     await viewsDB.addRecipeView(userId, { spoonacularId, userRecipeId, familyRecipeId });
 
     // Increase popularity only for local user-created recipes
@@ -58,6 +58,7 @@ async function addViewedRecipe(userId, { spoonacularId = null, userRecipeId = nu
  * Returns last 3 viewed recipes with full details
  */
 async function getViewedRecipes(userId) {
+    const recipeCombiner = require("../recipes_combined_utils");
     const rawViews = await viewsDB.getViewsByUserId(userId);
     return await recipeCombiner.enrichRecipesFromDB(rawViews, "source", "recipe_id", userId);
 }
@@ -105,6 +106,7 @@ async function addMealPlan(userId, { spoonacularId = null, userRecipeId = null, 
  * Retrieves all meal plan entries for the user with full recipe details
  */
 async function getMealPlan(userId) {
+    const recipeCombiner = require("../recipes_combined_utils");
     const rawPlan = await mealPlanDB.getMealPlansByUserId(userId);
     return await recipeCombiner.enrichRecipesFromDB(rawPlan, "source", "recipe_id", userId);
 }

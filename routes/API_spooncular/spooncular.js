@@ -33,7 +33,7 @@ router.get("/:id",async (req, res, next) => {
 });
 
 /**
- * GET /spoonacular/search
+ * GET /spoonacular/search/query
  * Performs a search based on query params (q, cuisine, diet, intolerance, limit)
  */
 router.get("/search/query", async (req, res, next) => {

@@ -46,11 +46,11 @@ Responsibilities:
 - Records views, search history or favorites via `user_utils.js` if user is logged in
 
 ### 4. `spooncular.js`
-Defines the REST API endpoints under `/api/spoonacular/`.  
+Defines the REST API endpoints under `/spoonacular/`.  
 Examples:
-- `GET /api/spoonacular/random` – 3 random recipes
-- `GET /api/spoonacular/:id` – Full recipe details
-- `GET /api/spoonacular/search/query` – Search Spoonacular by keyword
+- `GET /spoonacular/random` – 3 random recipes
+- `GET /spoonacular/:id` – Full recipe details
+- `GET /spoonacular/search/query` – Search Spoonacular by keyword
 
 ---
 
@@ -58,7 +58,7 @@ Examples:
 
 ```plaintext
 [CLIENT]
-    ↓ (GET /api/spoonacular/:id)
+    ↓ (GET /spoonacular/:id)
 [ROUTER] spooncular.js
     ↓
 [ACTIONS] spooncular_actions.js

@@ -1,6 +1,5 @@
 const spoonacularConnect = require("./spooncular_connect"); // For API calls
 const slices = require("./spooncular_slices"); // For slicing relevant values
-const userUtils  = require("../utils/user_utils"); // Optional: to store recipes in DB
 
 
 /**
@@ -28,6 +27,7 @@ async function fetchRandomRecipes(amount = 3) {
  * @returns {Promise<object>} - Sliced full recipe details
  */
 async function fetchRecipeById(recipeId, userId = null) {
+    const userUtils  = require("../utils/user_utils"); //To store recipes in DB
     const rawRecipe = await spoonacularConnect.getFromSpoonacular(`/${recipeId}/information`);
     const recipeDetails = slices.sliceRecipeDetails(rawRecipe);
 
@@ -47,13 +47,20 @@ async function fetchRecipeById(recipeId, userId = null) {
 /**
  * Search for recipes using Spoonacular API with filters.
  * Also records the search in DB if userId is provided.
+ * Automatically adds full recipe info (e.g., vegan, readyInMinutes) by appending { addRecipeInformation: true } to the request.
  *
  * @param {object} searchCriteria - Filters: query, cuisine, diet, intolerances, etc.
  * @param {number|null} userId - Logged-in user ID (optional)
  * @returns {Promise<Array>} - Array of sliced recipe overviews
  */
+
+
 async function fetchRecipesBySearch(searchCriteria, userId = null) {
-    const data = await spoonacularConnect.getFromSpoonacular("/complexSearch", searchCriteria);
+    const userUtils  = require("../utils/user_utils"); //To store recipes in DB
+    const data = await spoonacularConnect.getFromSpoonacular("/complexSearch", {
+        ...searchCriteria,
+        addRecipeInformation: true
+    });
     const rawRecipes = data.results || [];
 
     const sliced = rawRecipes.map(slices.sliceRecipeOverview);
@@ -73,24 +80,11 @@ async function fetchRecipesBySearch(searchCriteria, userId = null) {
     return sliced;
 }
 
-/**
- * Fetch recipe instructions (steps only) by recipe ID from Spoonacular
- *
- * @param {number} recipeId - Spoonacular recipe ID
- * @returns {Promise<Array>} - Array of instruction steps
- */
-async function fetchRecipeInstructions(recipeId) {
-    const rawRecipe = await spoonacularConnect.getFromSpoonacular(`/${recipeId}/information`);
 
-    const steps = slices.sliceAnalyzedInstructions(rawRecipe);
-
-    return steps;
-}
 
 
 
 module.exports = {
-    fetchRecipeInstructions, // no needed to be used right now, but maybe in the future
     fetchRandomRecipes,
     fetchRecipeById,
     fetchRecipesBySearch
