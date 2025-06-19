@@ -21,6 +21,8 @@ async function getIngredientsByFamilyRecipeId(recipeId) {
     return rows;
 }
 
+
+
 // Update an existing ingredient by its ID
 async function updateFamilyIngredientById(ingredientId, ingredientName, amount, unit) {
     const query = `
@@ -30,6 +32,14 @@ async function updateFamilyIngredientById(ingredientId, ingredientName, amount, 
     `;
     await db.execute(query, [ingredientName, amount, unit, ingredientId]);
 }
+async function isIngredientInRecipe(recipeId, ingredientId) {
+    const [[row]] = await db.execute(
+        `SELECT 1 FROM family_recipe_ingredients
+         WHERE recipe_id = ? AND ingredient_id = ?`,
+        [recipeId, ingredientId]
+    );
+    return !!row;
+}
 
 // Delete an ingredient by its ID
 async function deleteIngredientById(ingredientId) {
@@ -37,6 +47,7 @@ async function deleteIngredientById(ingredientId) {
 }
 
 module.exports = {
+    isIngredientInRecipe,
     addIngredientToFamilyRecipe,
     getIngredientsByFamilyRecipeId,
     updateFamilyIngredientById,

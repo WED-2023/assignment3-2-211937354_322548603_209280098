@@ -26,13 +26,17 @@ async function getUserRecipes(userId) {
     return rows;
 }
 
-// Delete a personal recipe by its ID
-async function deleteUserRecipe(recipeId) {
+/**
+ * Deletes a user recipe only if it belongs to the requesting user.
+ * First verifies ownership, then deletes associated ingredients, and finally the recipe.
+ * Throws 403 error if recipe doesn't belong to the user.
+ */async function deleteUserRecipe(recipeId, userId) {
     await db.execute(
-        "DELETE FROM user_recipes WHERE recipe_id = ?",
-        [recipeId]
+        "DELETE FROM user_recipes WHERE recipe_id = ? AND user_id = ?",
+        [recipeId, userId]
     );
 }
+
 
 
 // Increment the popularity score of a specific user-created recipe by 1
@@ -43,6 +47,14 @@ async function incrementPopularity(recipeId) {
         WHERE recipe_id = ?
     `;
     await db.execute(query, [recipeId]);
+}
+
+async function isUserRecipeOwner(recipeId, userId) {
+    const [rows] = await db.execute(
+        "SELECT 1 FROM user_recipes WHERE recipe_id = ? AND user_id = ?",
+        [recipeId, userId]
+    );
+    return rows.length > 0;
 }
 
 
@@ -69,6 +81,7 @@ async function updateUserRecipe(recipeId, title, imageUrl, readyInMinutes, isVeg
 }
 
 module.exports = {
+    isUserRecipeOwner,
     incrementPopularity,
     createUserRecipe,
     getUserRecipes,

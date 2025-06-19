@@ -15,14 +15,36 @@ const mealPlanDB = require("../../sql_scripts/data_access/meal_plans_db");
 
 
 /**
- * Adds a recipe to user's favorites, if not already added
+ * Adds a recipe to user's favorites, if not already added.
+ * Automatically detects the source of the recipe:
+ * - If recipe belongs to user's personal recipes → source = "user"
+ * - If recipe belongs to user's family recipes → source = "family"
+ * - Otherwise → assumed to be from Spoonacular API
+ *
+ * This source information is saved in the DB to enable proper enrichment when retrieving favorites.
  */
+
 async function addFavoriteRecipe(userId, recipeId) {
     const currentFavorites = await favoritesDB.getFavoritesByUserId(userId);
-    if (!currentFavorites.some(fav => fav.spoonacular_recipe_id === recipeId)) {
-        await favoritesDB.addFavorite(userId, recipeId);
+    if (currentFavorites.some(fav => fav.spoonacular_recipe_id === recipeId)) return;
+
+    const recipesUtils = require("./recipes_utils");
+
+    let source = "spoonacular";
+
+    const userRecipes = await recipesUtils.getAllUserRecipes(userId);
+    if (userRecipes.some(r => r.recipe_id === recipeId)) {
+        source = "user";
+    } else {
+        const familyRecipes = await recipesUtils.getFamilyRecipesByUserId(userId);
+        if (familyRecipes.some(r => r.recipe_id === recipeId)) {
+            source = "family";
+        }
     }
+
+    await favoritesDB.addFavorite(userId, recipeId, source);
 }
+
 
 /**
  * Removes a recipe from favorites
@@ -37,7 +59,7 @@ async function removeFavorite(userId, recipeId) {
 async function getFavoriteRecipes(userId) {
     const recipeCombiner = require("../recipes_combined_utils");
     const rawFavorites = await favoritesDB.getFavoritesByUserId(userId);
-    return await recipeCombiner.enrichRecipesFromDB(rawFavorites, "source", "spoonacular_recipe_id", userId);
+    return await recipeCombiner.enrichRecipesFromDB(rawFavorites, "source", "recipe_id", userId);
 }
 
 /**
@@ -55,12 +77,27 @@ async function addViewedRecipe(userId, { spoonacularId = null, userRecipeId = nu
 
 
 /**
- * Returns last 3 viewed recipes with full details
+ * Returns the last 3 viewed recipes for the user, with full details.
+ *
+ * Note:
+ * - This includes only recipes from the external Spoonacular API.
+ * - The system assumes all entries in the 'recipe_views' table are Spoonacular-based.
+ * - Each view is enriched with full recipe data using the Spoonacular recipe ID.
  */
+
 async function getViewedRecipes(userId) {
     const recipeCombiner = require("../recipes_combined_utils");
     const rawViews = await viewsDB.getViewsByUserId(userId);
-    return await recipeCombiner.enrichRecipesFromDB(rawViews, "source", "recipe_id", userId);
+
+    // Filter only spoonacular-based views and map them to expected structure
+    const enriched = rawViews
+        .filter(view => view.spoonacular_recipe_id !== null)
+        .map(view => ({
+            recipe_id: view.spoonacular_recipe_id,
+            source: "spoonacular"
+        }));
+
+    return await recipeCombiner.enrichRecipesFromDB(enriched, "source", "recipe_id", userId);
 }
 
 
@@ -90,17 +127,30 @@ async function getLastSearchQuery(userId) {
 
 /**
  * Adds a new recipe to the user's meal plan.
- * Only one recipe type (spoonacular, user, or family) should be defined.
- * The function automatically sets the correct order for the new item.
+ * The function detects the recipe source (spoonacular / user / family),
+ * calculates its order, and inserts it into the DB.
  */
-async function addMealPlan(userId, { spoonacularId = null, userRecipeId = null, familyRecipeId = null }) {
-    // Step 1: Fetch current count of meal plan entries for the user
+async function addMealPlan(userId, recipeId) {
+    const recipesUtils = require("./recipes_utils");
     const currentPlans = await mealPlanDB.getMealPlansByUserId(userId);
     const nextOrder = currentPlans.length + 1;
 
-    // Step 2: Insert new plan at the next order
-    await mealPlanDB.addMealPlan(userId, spoonacularId, userRecipeId, familyRecipeId, nextOrder);
+    // Detect source
+    let source = "spoonacular";
+    const userRecipes = await recipesUtils.getAllUserRecipes(userId);
+    if (userRecipes.some(r => r.recipe_id === recipeId)) {
+        source = "user";
+    } else {
+        const familyRecipes = await recipesUtils.getFamilyRecipesByUserId(userId);
+        if (familyRecipes.some(r => r.recipe_id === recipeId)) {
+            source = "family";
+        }
+    }
+
+    // Save to DB
+    await mealPlanDB.addMealPlan(userId, recipeId, source, nextOrder);
 }
+
 
 /**
  * Retrieves all meal plan entries for the user with full recipe details

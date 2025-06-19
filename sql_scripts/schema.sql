@@ -73,11 +73,13 @@ CREATE TABLE family_recipe_ingredients (
 CREATE TABLE user_favorites (
                                 favorite_id INT AUTO_INCREMENT PRIMARY KEY,
                                 user_id INT NOT NULL,
-                                spoonacular_recipe_id INT NOT NULL,
+                                recipe_id INT NOT NULL,
+                                source ENUM('spoonacular', 'user', 'family') NOT NULL DEFAULT 'spoonacular',
                                 added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                                 FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                                UNIQUE KEY unique_user_recipe (user_id, spoonacular_recipe_id)
+                                UNIQUE KEY unique_user_recipe (user_id, recipe_id)
 );
+
 
 -- Table 7: recipe_views
 CREATE TABLE recipe_views (
@@ -111,20 +113,14 @@ CREATE TABLE search_history (
 CREATE TABLE meal_plans (
                             plan_id INT AUTO_INCREMENT PRIMARY KEY,
                             user_id INT NOT NULL,
-                            spoonacular_recipe_id INT,
-                            user_recipe_id INT,
-                            family_recipe_id INT,
+                            recipe_id INT NOT NULL,
+                            source ENUM('spoonacular', 'user', 'family') NOT NULL,
                             order_in_meal INT NOT NULL,
                             added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                            FOREIGN KEY (user_recipe_id) REFERENCES user_recipes(recipe_id) ON DELETE CASCADE,
-                            FOREIGN KEY (family_recipe_id) REFERENCES family_recipes(recipe_id) ON DELETE CASCADE,
-                            CONSTRAINT chk_single_recipe_type CHECK (
-                                (spoonacular_recipe_id IS NOT NULL AND user_recipe_id IS NULL AND family_recipe_id IS NULL) OR
-                                (spoonacular_recipe_id IS NULL AND user_recipe_id IS NOT NULL AND family_recipe_id IS NULL) OR
-                                (spoonacular_recipe_id IS NULL AND user_recipe_id IS NULL AND family_recipe_id IS NOT NULL)
-                                )
+                            UNIQUE KEY unique_user_recipe (user_id, recipe_id, source)
 );
+
 
 -- Table 10: recipe_preparation_progress
 CREATE TABLE recipe_preparation_progress (

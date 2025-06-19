@@ -21,14 +21,15 @@ INSERT INTO users (username, first_name, last_name, country, email, hashedPasswo
 VALUES
     ('alice', 'Alice', 'Johnson', 'USA', 'alice@example.com', '$2b$11$QIXVFjQqAJPGkgJzN9pNTOXaV9fgJPKJVcNkBrUJoGJ5zQYhBxlPG'), -- password1
     ('bob', 'Bob', 'Smith', 'Canada', 'bob@example.com', '$2b$11$HvQJFWNZAKfgshJZGNqtfONNGGkP4JJVEcEQtKf.5zFEjPJmGdN8u'), -- password2
-    ('carol', 'Carol', 'Davis', 'UK', 'carol@example.com', '$2b$11$mWNXPqBvgJTZGJtfgJFheeZJ4FgjhJRFjhJFjhJGjhJRFjhJRFjK.'); -- password3
+    ('carol', 'Carol', 'Davis', 'UK', 'carol@example.com', '$2b$11$mWNXPqBvgJTZGJtfgJFheeZJ4FgjhJRFjhJFjhJGjhJRFjhJRFjK.'), -- password3
+    ('Lidor','Lidor','Mashiach','Israel','Lidorm1612@gmail.com','$2b$11$aZUjwdnAcyYg.XtVGuaHNOnrwHZzqasdtk57lnakBf/Bk708lYSH2');
 
 -- Insert into Table 2: user_recipes
 INSERT INTO user_recipes (user_id, title, image_url, ready_in_minutes, popularity_score, is_vegan, is_vegetarian, is_gluten_free, servings, summary, instructions)
 VALUES
-    (1, 'Vegan Quinoa Salad', 'https://example.com/quinoa-salad.jpg', 20, 85, TRUE, TRUE, TRUE, 4, 'Fresh and healthy quinoa salad with vegetables', 'Cook quinoa, chop vegetables, mix with dressing'),
-    (2, 'Classic Spaghetti Carbonara', 'https://example.com/carbonara.jpg', 25, 92, FALSE, FALSE, FALSE, 2, 'Traditional Italian pasta with eggs and pancetta', 'Cook pasta, prepare sauce, combine carefully'),
-    (3, 'Chocolate Chip Cookies', 'https://example.com/cookies.jpg', 30, 78, FALSE, TRUE, FALSE, 24, 'Homemade chocolate chip cookies', 'Mix ingredients, form cookies, bake until golden');
+    (1, 'Vegan Quinoa Salad', 'https://shaneandsimple.com/wp-content/uploads/2024/04/EASY-Mediterranean-Quinoa-Salad-simple-oilfree-healthy-recipes-shaneandsimple-2-1157x1536.jpg', 20, 85, TRUE, TRUE, TRUE, 4, 'Fresh and healthy quinoa salad with vegetables', 'Cook quinoa, chop vegetables, mix with dressing'),
+    (2, 'Classic Spaghetti Carbonara', 'https://www.sweetteaandthyme.com/wp-content/uploads/2018/09/spaghetti-alla-carbonara-45-e1545077413444.jpg', 25, 92, FALSE, FALSE, FALSE, 2, 'Traditional Italian pasta with eggs and pancetta', 'Cook pasta, prepare sauce, combine carefully'),
+    (3, 'Chocolate Chip Cookies', 'https://www.onceuponachef.com/images/2021/11/Best-Chocolate-Chip-Cookies.jpg', 30, 78, FALSE, TRUE, FALSE, 24, 'Homemade chocolate chip cookies', 'Mix ingredients, form cookies, bake until golden');
 
 -- Insert into Table 3: user_recipe_ingredients
 INSERT INTO user_recipe_ingredients (recipe_id, ingredient_name, amount, unit)
@@ -70,11 +71,16 @@ VALUES
     (3, 'Sugar', 150, 'grams');
 
 -- Insert into Table 6: user_favorites
-INSERT INTO user_favorites (user_id, spoonacular_recipe_id)
+INSERT INTO user_favorites (user_id, recipe_id,source)
 VALUES
-    (1, 123456),
-    (2, 234567),
-    (3, 345678);
+    (1, 123456, 'user'),
+    (2, 234567, 'user'),
+    (3, 345678, 'user'),
+    (4,1096168,'spoonacular'),
+    (4,1096167,'spoonacular'),
+    (4,1096169,'spoonacular'),
+    (4,1096166,'spoonacular');
+
 
 -- Insert into Table 7: recipe_views
 INSERT INTO recipe_views (user_id, spoonacular_recipe_id, user_recipe_id, family_recipe_id)
@@ -91,11 +97,12 @@ VALUES
     (3, 'dessert recipes', 'American', 'vegetarian', 'gluten', 8);
 
 -- Insert into Table 9: meal_plans
-INSERT INTO meal_plans (user_id, spoonacular_recipe_id, user_recipe_id, family_recipe_id, order_in_meal)
+INSERT INTO meal_plans (user_id, recipe_id, source, order_in_meal)
 VALUES
-    (1, 123456, NULL, NULL, 1),    -- Alice planned a Spoonacular recipe first
-    (2, NULL, 2, NULL, 1),         -- Bob planned his carbonara first
-    (3, NULL, NULL, 3, 1);         -- Carol planned her mom's apple pie first
+    (1, 123456, 'spoonacular', 1),  -- Alice planned a Spoonacular recipe first
+    (2, 2,        'user',       1),  -- Bob planned his carbonara first
+    (3, 3,        'family',     1);  -- Carol planned her mom's apple pie first
+
 
 -- Insert into Table 10: recipe_preparation_progress
 INSERT INTO recipe_preparation_progress (user_id, spoonacular_recipe_id, user_recipe_id, family_recipe_id, step_number, is_completed, completed_at)

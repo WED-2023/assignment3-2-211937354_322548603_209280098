@@ -139,7 +139,7 @@ Each table below includes:
 
 ### 4. `family_recipes` – ✅ Required
 
-- **Purpose**: User-contributed family-style recipes with a story, preparation context, and legacy value (owner name, when-to-prepare). These recipes are public and meant to be shared across all users – unlike private personal recipes.
+- **Purpose**: User-contributed family-style recipes with a story, preparation context, and legacy value (owner name, when-to-prepare).
 - **PK**: `recipe_id`
 - **FK**: `user_id → users(user_id)`
 - **Why separate**: Different fields (owner, heritage text)
@@ -186,7 +186,7 @@ Each table below includes:
 
 - **Purpose**: Weekly plan (mix of all recipe types)
 - **PK**: `plan_id`
-- **FK**: one of `spoonacular_recipe_id`, `user_recipe_id`, or `family_recipe_id`
+- **FK**: Points to one of three recipe sources (spoonacular, user, family) – enforced programmatically, not via strict FK.
 - **Why**: Advanced personalization
 
 ---
@@ -206,6 +206,15 @@ Each table below includes:
 - **PK**: `step_id`
 - **FK**: Either `user_recipe_id` or `family_recipe_id`
 - **Why**: Normalize recipe steps into a dedicated, queryable table
+
+---
+
+## 🔐 Access Control Model
+
+Only the recipe owners may view, edit, or delete their personal (`user_recipes`) or family (`family_recipes`) content.  
+All validations are implemented in the respective DB access files (`*_db.js`) and not in the route or logic layers.
+
+The `data_access` layer is also responsible for validating user permissions when modifying personal content (e.g., verifying that a recipe or ingredient belongs to the requesting user). This ensures consistent access control across all database operations.
 
 ---
 

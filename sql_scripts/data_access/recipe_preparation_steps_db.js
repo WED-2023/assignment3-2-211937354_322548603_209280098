@@ -45,6 +45,15 @@ async function deleteStepById(stepId) {
     );
 }
 
+async function getStepById(stepId) {
+    const [rows] = await db.execute(
+        "SELECT * FROM recipe_preparation_steps WHERE step_id = ?",
+        [stepId]
+    );
+    return rows[0] || null;
+}
+
+
 // Delete all steps associated with a given recipe
 async function deleteAllStepsByRecipe(userRecipeId, familyRecipeId) {
     const query = `
@@ -56,6 +65,7 @@ async function deleteAllStepsByRecipe(userRecipeId, familyRecipeId) {
 }
 
 module.exports = {
+    getStepById,
     addPreparationStep,
     getStepsByRecipeId,
     updateStepDescription,

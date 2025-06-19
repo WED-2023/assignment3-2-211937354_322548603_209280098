@@ -13,15 +13,13 @@ async function createFamilyRecipe(userId, title, ownerName, whenToPrepare, image
     await db.execute(query, [userId, title, ownerName, whenToPrepare, imageUrl, readyInMinutes, servings, instructions]);
 }
 
-// Retrieve all family recipes
-async function getAllFamilyRecipes() {
-    const [rows] = await db.execute("SELECT * FROM family_recipes");
-    return rows;
-}
 
-// Retrieve a family recipe by ID
-async function getFamilyRecipeById(recipeId) {
-    const [rows] = await db.execute("SELECT * FROM family_recipes WHERE recipe_id = ?", [recipeId]);
+
+async function getFamilyRecipeById(recipeId, userId) {
+    const [rows] = await db.execute(
+        "SELECT * FROM family_recipes WHERE recipe_id = ? AND user_id = ?",
+        [recipeId, userId]
+    );
     return rows[0];
 }
 
@@ -55,9 +53,19 @@ async function deleteFamilyRecipeById(recipeId) {
     await db.execute("DELETE FROM family_recipes WHERE recipe_id = ?", [recipeId]);
 }
 
+// Check if a given family recipe belongs to a specific user
+async function isRecipeOwnedByUser(recipeId, userId) {
+    const [[row]] = await db.execute(
+        "SELECT 1 FROM family_recipes WHERE recipe_id = ? AND user_id = ?",
+        [recipeId, userId]
+    );
+    return !!row;
+}
+
+
 module.exports = {
+    isRecipeOwnedByUser,
     createFamilyRecipe,
-    getAllFamilyRecipes,
     getFamilyRecipeById,
     getFamilyRecipesByUserId,
     updateFamilyRecipe,

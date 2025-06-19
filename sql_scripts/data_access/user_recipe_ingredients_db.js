@@ -21,6 +21,19 @@ async function getIngredientsByRecipeId(recipeId) {
     return rows;
 }
 
+// Check if ingredient belongs to a recipe owned by the user
+async function isIngredientOwnedByUser(ingredientId, userId) {
+    const query = `
+        SELECT 1
+        FROM user_recipe_ingredients AS uri
+        JOIN user_recipes AS ur ON uri.recipe_id = ur.recipe_id
+        WHERE uri.ingredient_id = ? AND ur.user_id = ?
+    `;
+    const [rows] = await db.execute(query, [ingredientId, userId]);
+    return rows.length > 0;
+}
+
+
 // Update an existing ingredient by ingredient_id
 async function updateIngredient(ingredientId, updatedFields) {
     const fields = [];
@@ -58,6 +71,7 @@ async function deleteIngredientsByRecipeId(recipeId) {
 
 
 module.exports = {
+    isIngredientOwnedByUser,
     addIngredientToUserRecipe,
     getIngredientsByRecipeId,
     updateIngredient,

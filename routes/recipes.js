@@ -32,7 +32,7 @@ router.get("/user/my-recipes", async (req, res, next) => {
 
 router.delete("/user/my-recipes/:recipeId", async (req, res, next) => {
   try {
-    await recipesLogic.deletePersonalRecipe(req.params.recipeId);
+    await recipesLogic.deletePersonalRecipe(req.params.recipeId, req.user_id);
     res.status(200).send({ message: "Recipe deleted successfully ✅" });
   } catch (error) {
     console.error("Error deleting personal recipe:", error);
@@ -40,9 +40,10 @@ router.delete("/user/my-recipes/:recipeId", async (req, res, next) => {
   }
 });
 
+
 router.put("/user/my-recipes/:recipeId", async (req, res, next) => {
   try {
-    await recipesLogic.updateUserRecipeDetails(req.params.recipeId, req.body);
+    await recipesLogic.updateUserRecipeDetails(req.params.recipeId, req.body, req.user_id);
     res.status(200).send({ message: "Recipe updated successfully ✅" });
   } catch (error) {
     console.error("Error updating personal recipe:", error);
@@ -60,7 +61,8 @@ router.post("/user/my-recipes/:recipeId/ingredients", async (req, res, next) => 
         req.params.recipeId,
         ingredientName,
         amount,
-        unit
+        unit,
+        req.user_id
     );
     res.status(201).send({ message: "Ingredient added successfully" });
   } catch (error) {
@@ -69,9 +71,13 @@ router.post("/user/my-recipes/:recipeId/ingredients", async (req, res, next) => 
   }
 });
 
+
 router.get("/user/my-recipes/:recipeId/ingredients", async (req, res, next) => {
   try {
-    const ingredients = await recipesLogic.getIngredientsByRecipeId(req.params.recipeId);
+    const ingredients = await recipesLogic.getIngredientsByRecipeId(
+        req.params.recipeId,
+        req.user_id
+    );
     res.status(200).send(ingredients);
   } catch (error) {
     console.error("Error fetching ingredients:", error);
@@ -79,12 +85,13 @@ router.get("/user/my-recipes/:recipeId/ingredients", async (req, res, next) => {
   }
 });
 
+
 router.put("/user/my-recipes/ingredients/:ingredientId", async (req, res, next) => {
   try {
     const { ingredientId } = req.params;
     const updatedFields = req.body;
 
-    await recipesLogic.updateIngredient(ingredientId, updatedFields);
+    await recipesLogic.updateIngredient(ingredientId, updatedFields, req.user_id);
     res.status(200).send({ message: "Ingredient updated successfully ✅" });
   } catch (error) {
     console.error("Error updating ingredient:", error);
@@ -92,10 +99,11 @@ router.put("/user/my-recipes/ingredients/:ingredientId", async (req, res, next) 
   }
 });
 
+
 router.delete("/user/my-recipes/ingredients/:ingredientId", async (req, res, next) => {
   try {
     const { ingredientId } = req.params;
-    await recipesLogic.deleteIngredient(ingredientId);
+    await recipesLogic.deleteIngredient(ingredientId, req.user_id);
     res.status(200).send({ message: "Ingredient deleted successfully ✅" });
   } catch (error) {
     console.error("Error deleting ingredient:", error);
@@ -115,9 +123,9 @@ router.post("/user/family-recipes", async (req, res, next) => {
   }
 });
 
-router.get("/family", async (req, res, next) => {
+router.get("/user/my-family-recipes", async (req, res, next) => {
   try {
-    const recipes = await recipesLogic.getAllFamilyRecipes();
+    const recipes = await recipesLogic.getAllFamilyRecipes(req.user_id);
     res.status(200).send(recipes);
   } catch (error) {
     console.error("Error fetching family recipes:", error);
@@ -125,9 +133,10 @@ router.get("/family", async (req, res, next) => {
   }
 });
 
+
 router.get("/family/:recipeId", async (req, res, next) => {
   try {
-    const recipe = await recipesLogic.getFamilyRecipeById(req.params.recipeId);
+    const recipe = await recipesLogic.getFamilyRecipeById(req.params.recipeId, req.user_id);
     if (!recipe) return res.status(404).send({ message: "Recipe not found" });
     res.status(200).send(recipe);
   } catch (error) {
@@ -136,19 +145,11 @@ router.get("/family/:recipeId", async (req, res, next) => {
   }
 });
 
-router.get("/user/my-family-recipes", async (req, res, next) => {
-  try {
-    const recipes = await recipesLogic.getFamilyRecipesByUserId(req.user_id);
-    res.status(200).send(recipes);
-  } catch (error) {
-    console.error("Error fetching user's family recipes:", error);
-    next(error);
-  }
-});
+
 
 router.put("/user/my-family-recipes/:recipeId", async (req, res, next) => {
   try {
-    await recipesLogic.updateFamilyRecipe(req.params.recipeId, req.body);
+    await recipesLogic.updateFamilyRecipe(req.params.recipeId, req.body, req.user_id);
     res.status(200).send({ message: "Family recipe updated successfully 🛠️" });
   } catch (error) {
     console.error("Error updating family recipe:", error);
@@ -156,15 +157,17 @@ router.put("/user/my-family-recipes/:recipeId", async (req, res, next) => {
   }
 });
 
+
 router.delete("/user/my-family-recipes/:recipeId", async (req, res, next) => {
   try {
-    await recipesLogic.deleteFamilyRecipe(req.params.recipeId);
+    await recipesLogic.deleteFamilyRecipe(req.params.recipeId, req.user_id);
     res.status(200).send({ message: "Family recipe deleted successfully 🗑️" });
   } catch (error) {
     console.error("Error deleting family recipe:", error);
     next(error);
   }
 });
+
 
 
 /** Family's Recipes Ingredients **/
@@ -189,7 +192,7 @@ router.post("/user/my-family-recipes/:recipeId/ingredients", async (req, res, ne
 
 router.get("/user/my-family-recipes/:recipeId/ingredients", async (req, res, next) => {
   try {
-    const ingredients = await recipesLogic.getIngredientsByFamilyRecipeId(req.params.recipeId);
+    const ingredients = await recipesLogic.getIngredientsByFamilyRecipeId(req.params.recipeId, req.user_id);
     res.status(200).send(ingredients);
   } catch (error) {
     console.error("Error fetching ingredients for family recipe:", error);
@@ -197,21 +200,34 @@ router.get("/user/my-family-recipes/:recipeId/ingredients", async (req, res, nex
   }
 });
 
-router.put("/user/my-family-recipes/ingredients/:ingredientId", async (req, res, next) => {
+
+router.put("/user/my-family-recipes/:recipeId/ingredients/:ingredientId", async (req, res, next) => {
   try {
     const { ingredientName, amount, unit } = req.body;
-    await recipesLogic.updateFamilyIngredientById(req.params.ingredientId, ingredientName, amount, unit);
-    res.status(200).send({ message: "Family recipe ingredient updated successfully 🛠️" });
+    await recipesLogic.updateFamilyIngredientById(
+        parseInt(req.params.recipeId),
+        parseInt(req.params.ingredientId),
+        ingredientName,
+        amount,
+        unit,
+        req.user_id
+    );
+    res.status(200).send({ message: "Ingredient updated or added successfully ✅" });
   } catch (error) {
-    console.error("Error updating family recipe ingredient:", error);
+    console.error("Error updating/adding family recipe ingredient:", error);
     next(error);
   }
 });
 
 
-router.delete("/user/my-family-recipes/ingredients/:ingredientId", async (req, res, next) => {
+
+
+router.delete("/user/my-family-recipes/:recipeId/ingredients/:ingredientId", async (req, res, next) => {
   try {
-    await recipesLogic.deleteFamilyIngredient(req.params.ingredientId);
+    const recipeId = parseInt(req.params.recipeId);
+    const ingredientId = parseInt(req.params.ingredientId);
+
+    await recipesLogic.deleteFamilyIngredient(ingredientId, recipeId, req.user_id);
     res.status(200).send({ message: "Family recipe ingredient deleted successfully 🗑️" });
   } catch (error) {
     console.error("Error deleting family recipe ingredient:", error);
@@ -219,12 +235,20 @@ router.delete("/user/my-family-recipes/ingredients/:ingredientId", async (req, r
   }
 });
 
+
 /** recipe_preparation_steps **/
 router.post("/steps", async (req, res, next) => {
   try {
     const { userRecipeId = null, familyRecipeId = null, stepNumber, stepDescription } = req.body;
 
-    await recipesLogic.addPreparationStepToRecipe(userRecipeId, familyRecipeId, stepNumber, stepDescription);
+    await recipesLogic.addPreparationStepToRecipe(
+        userRecipeId,
+        familyRecipeId,
+        stepNumber,
+        stepDescription,
+        req.user_id
+    );
+
     res.status(201).send({ message: "Step added successfully ✅" });
   } catch (error) {
     console.error("Error adding step:", error);
@@ -232,21 +256,24 @@ router.post("/steps", async (req, res, next) => {
   }
 });
 
+
 router.get("/steps", async (req, res, next) => {
   try {
     const { userRecipeId = null, familyRecipeId = null } = req.query;
 
-    if (!userRecipeId && !familyRecipeId) {
-      return res.status(400).send({ message: "Recipe ID is required." });
-    }
+    const steps = await recipesLogic.getPreparationSteps(
+        userRecipeId ? parseInt(userRecipeId) : null,
+        familyRecipeId ? parseInt(familyRecipeId) : null,
+        req.user_id
+    );
 
-    const steps = await recipesLogic.getPreparationSteps(userRecipeId, familyRecipeId);
     res.status(200).send(steps);
   } catch (error) {
     console.error("Error fetching preparation steps:", error);
     next(error);
   }
 });
+
 
 
 router.put("/steps/:stepId", async (req, res, next) => {
@@ -267,16 +294,37 @@ router.put("/steps/:stepId", async (req, res, next) => {
 });
 
 
-router.delete("/steps/:stepId", async (req, res, next) => {
+router.put("/steps/:stepId", async (req, res, next) => {
   try {
     const { stepId } = req.params;
-    await recipesLogic.deletePreparationStep(stepId);
+    const { newDescription } = req.body;
+
+    if (!newDescription) {
+      return res.status(400).send({ message: "New description is required." });
+    }
+
+    await recipesLogic.updatePreparationStep(parseInt(stepId), newDescription, req.user_id);
+    res.status(200).send({ message: "Step updated successfully ✅" });
+  } catch (error) {
+    console.error("Error updating step description:", error);
+    next(error);
+  }
+});
+
+router.delete("/steps/:stepId", async (req, res, next) => {
+  try {
+    const stepId = parseInt(req.params.stepId);
+    const userId = req.user_id;
+
+    await recipesLogic.deletePreparationStep(stepId, userId);
     res.status(200).send({ message: "Step deleted successfully 🗑️" });
   } catch (error) {
     console.error("Error deleting preparation step:", error);
     next(error);
   }
 });
+
+
 
 router.delete("/steps", async (req, res, next) => {
   try {
@@ -286,7 +334,7 @@ router.delete("/steps", async (req, res, next) => {
       return res.status(400).send({ message: "Must provide either userRecipeId or familyRecipeId." });
     }
 
-    await recipesLogic.deleteAllStepsForRecipe(userRecipeId, familyRecipeId);
+    await recipesLogic.deleteAllStepsForRecipe(userRecipeId, familyRecipeId, req.user_id);
     res.status(200).send({ message: "All steps deleted successfully 🚮" });
   } catch (error) {
     console.error("Error deleting all steps:", error);

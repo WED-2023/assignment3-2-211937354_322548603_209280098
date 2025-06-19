@@ -49,16 +49,25 @@ async function getAllUserRecipes(userId) {
 }
 
 /**
- * Deletes a personal recipe by ID (and its ingredients)
+ * Deletes a user's personal recipe, including all related ingredients.
+ * Ensures the recipe belongs to the user.
  */
-async function deletePersonalRecipe(recipeId) {
-    // delete all ingredients
+async function deletePersonalRecipe(recipeId, userId) {
+    // Step 1: Check recipe ownership using DB-layer check
+    const isOwner = await userRecipesDB.isUserRecipeOwner(recipeId, userId);
+    if (!isOwner) {
+        const err = new Error("Unauthorized: You can only delete your own recipes.");
+        err.status = 403;
+        throw err;
+    }
 
+    // Step 2: Delete all ingredients associated with the recipe
     await deleteAllIngredientsForRecipe(recipeId);
 
-    // delete the recipe
-    await userRecipesDB.deleteUserRecipe(recipeId);
+    // Step 3: Delete the recipe itself
+    await userRecipesDB.deleteUserRecipe(recipeId, userId);
 }
+
 
 
 /**
@@ -69,7 +78,15 @@ async function incrementUserRecipePopularity(recipeId) {
 }
 
 /** Update a full user recipe by ID */
-async function updateUserRecipeDetails(recipeId, recipeData) {
+async function updateUserRecipeDetails(recipeId, recipeData, userId) {
+    // Ownership check
+    const isOwner = await userRecipesDB.isUserRecipeOwner(recipeId, userId);
+    if (!isOwner) {
+        const err = new Error("Unauthorized: You can only edit your own recipes.");
+        err.status = 403;
+        throw err;
+    }
+
     const {
         title,
         imageUrl,
@@ -96,10 +113,21 @@ async function updateUserRecipeDetails(recipeId, recipeData) {
     );
 }
 
+
 /**
  * Adds a new ingredient to a specific personal recipe
  */
-async function addIngredientToUserRecipe(recipeId, ingredientName, amount, unit) {
+async function addIngredientToUserRecipe(recipeId, ingredientName, amount, unit, userId) {
+
+    // Validate ownership and existence
+    const isOwner = await userRecipesDB.isUserRecipeOwner(recipeId, userId);
+    if (!isOwner) {
+        const err = new Error("Unauthorized: You can only modify your own recipes.");
+        err.status = 403;
+        throw err;
+    }
+
+    // Add the ingredient
     await userRecipeIngredientsDB.addIngredientToUserRecipe(
         recipeId,
         ingredientName,
@@ -111,22 +139,48 @@ async function addIngredientToUserRecipe(recipeId, ingredientName, amount, unit)
 /**
  * Retrieves all ingredients for a user's personal recipe
  */
-async function getIngredientsByRecipeId(recipeId) {
+async function getIngredientsByRecipeId(recipeId, userId) {
+
+    // Check ownership
+    const isOwner = await userRecipesDB.isUserRecipeOwner(recipeId, userId);
+    if (!isOwner) {
+        const err = new Error("Unauthorized: You can only access your own recipes.");
+        err.status = 403;
+        throw err;
+    }
+
     return await userRecipeIngredientsDB.getIngredientsByRecipeId(recipeId);
 }
+
+
 
 
 /**
  * Updates an existing ingredient in a personal recipe by ingredient ID
  */
-async function updateIngredient(ingredientId, updatedFields) {
+async function updateIngredient(ingredientId, updatedFields, userId) {
+    const isOwner = await userRecipeIngredientsDB.isIngredientOwnedByUser(ingredientId, userId);
+    if (!isOwner) {
+        const err = new Error("Unauthorized: You can only update your own ingredients.");
+        err.status = 403;
+        throw err;
+    }
+
     await userRecipeIngredientsDB.updateIngredient(ingredientId, updatedFields);
 }
+
 
 /**
  * Deletes a specific ingredient from a personal recipe
  */
-async function deleteIngredient(ingredientId) {
+async function deleteIngredient(ingredientId, userId) {
+    const isOwner = await userRecipeIngredientsDB.isIngredientOwnedByUser(ingredientId, userId);
+    if (!isOwner) {
+        const err = new Error("Unauthorized: You can only delete your own ingredients.");
+        err.status = 403;
+        throw err;
+    }
+
     await userRecipeIngredientsDB.deleteIngredientById(ingredientId);
 }
 
@@ -159,36 +213,48 @@ async function addFamilyRecipe(userId, recipeData) {
 }
 
 /**
- * Retrieve all available family recipes
+ * Retrieve all family recipes created by a specific user
  */
-async function getAllFamilyRecipes() {
-    return await familyRecipesDB.getAllFamilyRecipes();
+async function getAllFamilyRecipes(userId) {
+    return await familyRecipesDB.getFamilyRecipesByUserId(userId);
 }
+
 
 /**
  * Retrieve a specific family recipe by ID
  */
-async function getFamilyRecipeById(recipeId) {
-    return await familyRecipesDB.getFamilyRecipeById(recipeId);
+async function getFamilyRecipeById(recipeId, userId) {
+    return await familyRecipesDB.getFamilyRecipeById(recipeId, userId);
 }
 
-/**
- * Retrieve all family recipes created by a specific user
- */
-async function getFamilyRecipesByUserId(userId) {
-    return await familyRecipesDB.getFamilyRecipesByUserId(userId);
-}
+
+
 
 /**
- * Update a family recipe's details
+ * Update a family recipe after validating ownership
  */
-async function updateFamilyRecipe(recipeId, updatedFields) {
+async function updateFamilyRecipe(recipeId, updatedFields, userId) {
+    const isOwner = await familyRecipesDB.isRecipeOwnedByUser(recipeId, userId);
+    if (!isOwner) {
+        const err = new Error("Unauthorized – You can only update your own family recipes.");
+        err.status = 403;
+        throw err;
+    }
+
     await familyRecipesDB.updateFamilyRecipe(recipeId, updatedFields);
 }
+
 /**
- * Delete a family recipe by ID
+ * Delete a family recipe after verifying it belongs to the current user
  */
-async function deleteFamilyRecipe(recipeId) {
+async function deleteFamilyRecipe(recipeId, userId) {
+    const isOwner = await familyRecipesDB.isRecipeOwnedByUser(recipeId, userId);
+    if (!isOwner) {
+        const err = new Error("Unauthorized – You can only delete your own family recipes.");
+        err.status = 403;
+        throw err;
+    }
+
     await familyRecipesDB.deleteFamilyRecipeById(recipeId);
 }
 
@@ -205,9 +271,16 @@ async function addIngredientToFamilyRecipe(recipeId, ingredientName, amount, uni
 }
 
 /**
- * Gets all ingredients for a specific family recipe (by recipe ID)
+ * Gets all ingredients for a specific family recipe (after verifying ownership)
  */
-async function getIngredientsByFamilyRecipeId(recipeId) {
+async function getIngredientsByFamilyRecipeId(recipeId, userId) {
+    const isOwner = await familyRecipesDB.isRecipeOwnedByUser(recipeId, userId);
+    if (!isOwner) {
+        const err = new Error("Unauthorized – You can only access your own family recipes.");
+        err.status = 403;
+        throw err;
+    }
+
     return await familyRecipeIngredientsDB.getIngredientsByFamilyRecipeId(recipeId);
 }
 
@@ -215,17 +288,48 @@ async function getIngredientsByFamilyRecipeId(recipeId) {
 
 
 /**
- * Updates an existing ingredient in a family recipe by ingredient ID
+ * Updates an existing ingredient in a family recipe by ingredient ID,
+ * after verifying that the ingredient exists and belongs to a recipe owned by the user.
  */
-async function updateFamilyIngredientById(ingredientId, ingredientName, amount, unit) {
+async function updateFamilyIngredientById(recipeId, ingredientId, ingredientName, amount, unit, userId) {
+    const isOwner = await familyRecipesDB.isRecipeOwnedByUser(recipeId, userId);
+    if (!isOwner) {
+        const err = new Error("Unauthorized – You can only modify your own family recipes.");
+        err.status = 403;
+        throw err;
+    }
+
+    const ingredientExists = await familyRecipeIngredientsDB.isIngredientInRecipe(recipeId, ingredientId);
+    if (!ingredientExists) {
+        const err = new Error("Ingredient not found in this recipe.");
+        err.status = 404;
+        throw err;
+    }
+
     await familyRecipeIngredientsDB.updateFamilyIngredientById(ingredientId, ingredientName, amount, unit);
 }
 
 
+
 /**
- * Deletes a specific ingredient from a family recipe
+ * Deletes a specific ingredient from a family recipe,
+ * only if the ingredient belongs to a recipe owned by the user.
  */
-async function deleteFamilyIngredient(ingredientId) {
+async function deleteFamilyIngredient(ingredientId, recipeId, userId) {
+    const isOwner = await familyRecipesDB.isRecipeOwnedByUser(recipeId, userId);
+    if (!isOwner) {
+        const err = new Error("Unauthorized – You can only modify your own family recipes.");
+        err.status = 403;
+        throw err;
+    }
+
+    const ingredientExists = await familyRecipeIngredientsDB.isIngredientInRecipe(recipeId, ingredientId);
+    if (!ingredientExists) {
+        const err = new Error("Can't delete a non-existent ingredient in this recipe.");
+        err.status = 403;
+        throw err;
+    }
+
     await familyRecipeIngredientsDB.deleteIngredientById(ingredientId);
 }
 
@@ -234,36 +338,169 @@ async function deleteFamilyIngredient(ingredientId) {
 /**
  * Adds a new preparation step to a recipe (user or family)
  */
-async function addPreparationStepToRecipe(userRecipeId, familyRecipeId, stepNumber, stepDescription) {
+async function addPreparationStepToRecipe(userRecipeId, familyRecipeId, stepNumber, stepDescription, userId) {
+    const hasUserRecipe = !!userRecipeId;
+    const hasFamilyRecipe = !!familyRecipeId;
+
+    if ((hasUserRecipe && hasFamilyRecipe) || (!hasUserRecipe && !hasFamilyRecipe)) {
+        const err = new Error("Exactly one of userRecipeId or familyRecipeId must be provided.");
+        err.status = 400;
+        throw err;
+    }
+
+    if (hasUserRecipe) {
+        const userRecipes = await userRecipesDB.getUserRecipes(userId);
+        const ownsRecipe = userRecipes.some(r => r.recipe_id === userRecipeId);
+        if (!ownsRecipe) {
+            const err = new Error("Unauthorized – You don't own this user recipe.");
+            err.status = 403;
+            throw err;
+        }
+    } else {
+        const isOwner = await familyRecipesDB.isRecipeOwnedByUser(familyRecipeId, userId);
+        if (!isOwner) {
+            const err = new Error("Unauthorized – You don't own this family recipe.");
+            err.status = 403;
+            throw err;
+        }
+    }
+
     await recipeStepsDB.addPreparationStep(userRecipeId, familyRecipeId, stepNumber, stepDescription);
 }
 
+
 /**
- * Retrieve all preparation steps for a given recipe (user or family)
+ * Retrieve all preparation steps for a given recipe (user or family),
+ * after verifying the user owns the recipe.
  */
-async function getPreparationSteps(userRecipeId, familyRecipeId) {
+async function getPreparationSteps(userRecipeId, familyRecipeId, userId) {
+    const hasUserRecipe = !!userRecipeId;
+    const hasFamilyRecipe = !!familyRecipeId;
+
+    if ((hasUserRecipe && hasFamilyRecipe) || (!hasUserRecipe && !hasFamilyRecipe)) {
+        const err = new Error("Exactly one of userRecipeId or familyRecipeId must be provided.");
+        err.status = 400;
+        throw err;
+    }
+
+    if (hasUserRecipe) {
+        const userRecipes = await userRecipesDB.getUserRecipes(userId);
+        const owns = userRecipes.some(r => r.recipe_id === parseInt(userRecipeId));
+        if (!owns) {
+            const err = new Error("Unauthorized – You don't own this user recipe.");
+            err.status = 403;
+            throw err;
+        }
+    } else {
+        const isOwner = await familyRecipesDB.isRecipeOwnedByUser(parseInt(familyRecipeId), userId);
+        if (!isOwner) {
+            const err = new Error("Unauthorized – You don't own this family recipe.");
+            err.status = 403;
+            throw err;
+        }
+    }
+
     return await recipeStepsDB.getStepsByRecipeId(userRecipeId, familyRecipeId);
 }
 
+
 /**
- * Update the description of a preparation step by step ID
+ * Updates the description of a preparation step,
+ * only if the step exists and belongs to the user's recipe.
  */
-async function updatePreparationStep(stepId, newDescription) {
+async function updatePreparationStep(stepId, newDescription, userId) {
+    const stepData = await recipeStepsDB.getStepById(stepId);
+    if (!stepData) {
+        const err = new Error("Step not found.");
+        err.status = 404;
+        throw err;
+    }
+
+    const { user_recipe_id, family_recipe_id } = stepData;
+
+    if (user_recipe_id) {
+        const userRecipes = await userRecipesDB.getUserRecipes(userId);
+        const owns = userRecipes.some(r => r.recipe_id === user_recipe_id);
+        if (!owns) {
+            const err = new Error("Unauthorized – You don't own this step.");
+            err.status = 403;
+            throw err;
+        }
+    } else if (family_recipe_id) {
+        const isOwner = await familyRecipesDB.isRecipeOwnedByUser(family_recipe_id, userId);
+        if (!isOwner) {
+            const err = new Error("Unauthorized – You don't own this step.");
+            err.status = 403;
+            throw err;
+        }
+    } else {
+        // data corruption case
+        const err = new Error("Invalid step – missing recipe reference.");
+        err.status = 500;
+        throw err;
+    }
+
     await recipeStepsDB.updateStepDescription(stepId, newDescription);
 }
 
 
+
+
 /**
- * Delete a single preparation step by step ID
+ * Deletes a single preparation step by step ID,
+ * after verifying that the step belongs to a recipe owned by the user.
  */
-async function deletePreparationStep(stepId) {
+async function deletePreparationStep(stepId, userId) {
+    const step = await recipeStepsDB.getStepById(stepId);
+    if (!step) {
+        const err = new Error("Step not found.");
+        err.status = 404;
+        throw err;
+    }
+
+    if (step.user_recipe_id) {
+        const isOwner = await userRecipesDB.isUserRecipeOwner(step.user_recipe_id, userId);
+        if (!isOwner) {
+            const err = new Error("Unauthorized – You can only delete your own recipe steps.");
+            err.status = 403;
+            throw err;
+        }
+    } else if (step.family_recipe_id) {
+        const isOwner = await familyRecipesDB.isRecipeOwnedByUser(step.family_recipe_id, userId);
+        if (!isOwner) {
+            const err = new Error("Unauthorized – You can only delete your own family recipe steps.");
+            err.status = 403;
+            throw err;
+        }
+    } else {
+        throw new Error("Invalid step: missing recipe association.");
+    }
+
+    // שלב 3: מחיקה
     await recipeStepsDB.deleteStepById(stepId);
 }
 
 /**
- * Delete all steps associated with a specific recipe
+ * Delete all steps associated with a specific recipe,
+ * after verifying that the recipe belongs to the requesting user.
  */
-async function deleteAllStepsForRecipe(userRecipeId, familyRecipeId) {
+async function deleteAllStepsForRecipe(userRecipeId, familyRecipeId, userId) {
+    if (userRecipeId) {
+        const isOwner = await userRecipesDB.isUserRecipeOwner(userRecipeId, userId);
+        if (!isOwner) {
+            const err = new Error("Unauthorized – You can only delete your own recipe steps.");
+            err.status = 403;
+            throw err;
+        }
+    } else if (familyRecipeId) {
+        const isOwner = await familyRecipesDB.isRecipeOwnedByUser(familyRecipeId, userId);
+        if (!isOwner) {
+            const err = new Error("Unauthorized – You can only delete your own family recipe steps.");
+            err.status = 403;
+            throw err;
+        }
+    }
+
     await recipeStepsDB.deleteAllStepsByRecipe(userRecipeId, familyRecipeId);
 }
 
@@ -271,6 +508,23 @@ async function deleteAllStepsForRecipe(userRecipeId, familyRecipeId) {
  * Adds a new progress entry for a preparation step (of any recipe type)
  */
 async function addPreparationStepProgress(userId, spoonacularId, userRecipeId, familyRecipeId, stepNumber) {
+    if (userRecipeId) {
+        const isOwner = await userRecipesDB.isUserRecipeOwner(userRecipeId, userId);
+        if (!isOwner) {
+            const err = new Error("Unauthorized – You can only track progress for your own personal recipes.");
+            err.status = 403;
+            throw err;
+        }
+    } else if (familyRecipeId) {
+        const isOwner = await familyRecipesDB.isRecipeOwnedByUser(familyRecipeId, userId);
+        if (!isOwner) {
+            const err = new Error("Unauthorized – You can only track progress for your own family recipes.");
+            err.status = 403;
+            throw err;
+        }
+    }
+
+    // No check needed for spoonacular (public)
     await recipeProgressDB.addPreparationStepProgress(
         userId,
         spoonacularId,
@@ -279,6 +533,7 @@ async function addPreparationStepProgress(userId, spoonacularId, userRecipeId, f
         stepNumber
     );
 }
+
 
 /**
  * Marks a specific preparation step as completed for a user (any recipe type)
@@ -349,7 +604,6 @@ module.exports = {
     addIngredientToFamilyRecipe,
     deleteFamilyRecipe,
     updateFamilyRecipe,
-    getFamilyRecipesByUserId,
     getFamilyRecipeById,
     getAllFamilyRecipes,
     addFamilyRecipe,

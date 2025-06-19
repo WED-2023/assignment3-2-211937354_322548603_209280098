@@ -40,19 +40,6 @@ router.delete("/favorites/:recipeId", async (req, res, next) => {
 });
 
 /** Views */
-router.post("/viewed", async (req, res, next) => {
-  try {
-    const { spoonacularId, userRecipeId, familyRecipeId } = req.body;
-
-    await userUtils.addViewedRecipe(req.user_id, { spoonacularId, userRecipeId, familyRecipeId });
-
-    res.status(200).send({ message: "Marked as viewed. Nice pick!" });
-  } catch (error) {
-    console.error("Error marking recipe as viewed:", error);
-    next(error);
-  }
-});
-
 
 router.get("/my-last-watched", async (req, res, next) => {
   try {
@@ -76,18 +63,6 @@ router.delete("/views", async (req, res, next) => {
 
 
 /** Search history */
-router.post("/search-history", async (req, res, next) => {
-  try {
-    const { searchQuery, cuisine, diet, intolerance, limit } = req.body;
-
-    await userUtils.saveUserSearch(req.user_id, searchQuery, cuisine, diet, intolerance, limit);
-    res.status(200).send({ message: "Search saved successfully" });
-
-  } catch (error) {
-    console.error("Error saving search:", error);
-    next(error);
-  }
-});
 
 router.get("/search-history", async (req, res, next) => {
   try {
@@ -104,23 +79,21 @@ router.get("/search-history", async (req, res, next) => {
 });
 
 
-/** Meal Plan */
+/** Meal Plan **/
 
 /**
- * Adds a new recipe to the user's meal plan
- * Supports spoonacular, user recipe, or family recipe (one at a time)
+ * Adds a new recipe to the user's meal plan.
+ * Supports spoonacular, user recipe, or family recipe (one at a time).
  */
 router.post("/meal-plan", async (req, res, next) => {
   try {
-    const { spoonacularId, userRecipeId, familyRecipeId } = req.body;
+    const { recipeId } = req.body;
 
-    // Basic validation: only one recipe type should be provided
-    const typesProvided = [spoonacularId, userRecipeId, familyRecipeId].filter(id => id !== undefined && id !== null);
-    if (typesProvided.length !== 1) {
-      return res.status(400).send({ error: "Only one recipe type must be specified (spoonacular, user, or family)." });
+    if (!recipeId) {
+      return res.status(400).send({ error: "recipeId is required." });
     }
 
-    await userUtils.addMealPlan(req.user_id, { spoonacularId, userRecipeId, familyRecipeId });
+    await userUtils.addMealPlan(req.user_id, recipeId);
 
     res.status(200).send({ message: "Recipe added to meal plan." });
   } catch (error) {

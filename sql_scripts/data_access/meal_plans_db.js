@@ -4,13 +4,15 @@
 const db = require("../db_connection");
 
 // Add a new meal plan entry for a user
-async function addMealPlan(userId, spoonacularId, userRecipeId, familyRecipeId, orderInMeal) {
+
+async function addMealPlan(userId, recipeId, source, orderInMeal) {
     const query = `
-        INSERT INTO meal_plans (user_id, spoonacular_recipe_id, user_recipe_id, family_recipe_id, order_in_meal)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO meal_plans (user_id, recipe_id, source, order_in_meal)
+        VALUES (?, ?, ?, ?)
     `;
-    await db.execute(query, [userId, spoonacularId, userRecipeId, familyRecipeId, orderInMeal]);
+    await db.execute(query, [userId, recipeId, source, orderInMeal]);
 }
+
 
 // Get all meal plans for a user (sorted by position)
 async function getMealPlansByUserId(userId) {
@@ -22,6 +24,7 @@ async function getMealPlansByUserId(userId) {
 }
 
 // Delete a specific meal plan by its plan ID
+
 async function deleteMealPlanById(planId, userId) {
     // Step 1: Get the order of the deleted plan
     const [[deleted]] = await db.execute(
@@ -33,10 +36,10 @@ async function deleteMealPlanById(planId, userId) {
 
     const deletedOrder = deleted.order_in_meal;
 
-    // Step 2: Delete the plan
+    // Step 2: Delete the plan – with added user_id condition for safety
     await db.execute(
-        "DELETE FROM meal_plans WHERE plan_id = ?",
-        [planId]
+        "DELETE FROM meal_plans WHERE plan_id = ? AND user_id = ?",
+        [planId, userId]
     );
 
     // Step 3: Update the order of remaining plans
@@ -47,6 +50,7 @@ async function deleteMealPlanById(planId, userId) {
         [userId, deletedOrder]
     );
 }
+
 
 // Delete all meal plan entries for a user
 async function deleteMealPlansByUserId(userId) {
