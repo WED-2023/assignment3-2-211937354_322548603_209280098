@@ -69,8 +69,29 @@ async function deleteIngredientsByRecipeId(recipeId) {
     );
 }
 
+// Returns the recipe ID for a given ingredient
+async function getRecipeIdByIngredientId(ingredientId) {
+    const query = `SELECT recipe_id FROM user_recipe_ingredients WHERE ingredient_id = ?`;
+    const [rows] = await db.execute(query, [ingredientId]);
+    return rows.length > 0 ? rows[0].recipe_id : null;
+}
+
+// Count how many ingredients exist for a given recipe
+async function countIngredientsByRecipeId(recipeId) {
+    const query = `
+        SELECT COUNT(*) AS count
+        FROM user_recipe_ingredients
+        WHERE recipe_id = ?
+    `;
+    const [rows] = await db.execute(query, [recipeId]);
+    return rows[0]?.count || 0;
+}
+
+
 
 module.exports = {
+    countIngredientsByRecipeId,
+    getRecipeIdByIngredientId,
     isIngredientOwnedByUser,
     addIngredientToUserRecipe,
     getIngredientsByRecipeId,

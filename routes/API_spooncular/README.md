@@ -11,6 +11,7 @@ Everything related to the Spoonacular API – from raw API calls to value filter
 - Slicing only relevant fields (recipe "adjustment")
 - Triggering DB changes (e.g., recording views, searches, or storing favorites)
 - Defining REST endpoints for frontend consumption
+- **Fetching and formatting analyzed preparation steps for progress tracking**
 
 ---
 
@@ -25,6 +26,11 @@ Everything related to the Spoonacular API – from raw API calls to value filter
 - **Use case:** When clicking a recipe to open its full page.
 - **Displayed info:** Full metadata – title, summary, image, servings, instructions, etc.
 - **Used in:** `/spoonacular/:id`
+
+### 🔹 `sliceAnalyzedInstructions(rawInstructions)`
+- **Use case:** Extracting and formatting preparation steps for a given Spoonacular recipe.
+- **Displayed info:** Step number + text only (stripped of internal fields).
+- **Used in:** `/recipes/user/spoonacular/:id/steps` + progress tracking features
 
 ---
 
@@ -42,7 +48,7 @@ Used by: `spooncular_actions.js`
 Handles all Spoonacular-related operations.  
 Responsibilities:
 - Calls Spoonacular via `spooncular_connect.js`
-- Slices the data
+- Slices the data (overview / full details / analyzed instructions)
 - Records views, search history or favorites via `user_utils.js` if user is logged in
 
 ### 4. `spooncular.js`
@@ -59,11 +65,11 @@ Examples:
 ```plaintext
 [CLIENT]
     ↓ (GET /spoonacular/:id)
-[ROUTER] spooncular.js
+[ROUTER] spoonacular.js
     ↓
-[ACTIONS] spooncular_actions.js
+[ACTIONS] spoonacular_actions.js
     ↓
-[CONNECT] spooncular_connect.js ←→ Spoonacular API
+[CONNECT] spoonacular_connect.js ←→ Spoonacular API
     ↓
 [SLICING] spooncular_slices.js
     ↓
@@ -77,8 +83,10 @@ Examples:
 - **View recording:** if user is logged in and views a recipe → record in `recipe_views`
 - **Search logging:** if user is logged in and performs search → store query in `search_history`
 - **Favorites:** if user marks recipe as favorite → store ID in `user_favorites`
+- **Preparation progress:** if user enters a recipe → initialize rows in `recipe_preparation_progress` (tracked separately per user)
 
-📌 Spoonacular recipes are **never stored fully** in the DB – only metadata (ID, title, etc.) is referenced.
+📌 Spoonacular recipes are **never stored fully** in the DB – only metadata (ID, title, etc.) is referenced.  
+📌 **Preparation steps for Spoonacular** are always fetched fresh per request – not persisted in local DB.
 
 ---
 

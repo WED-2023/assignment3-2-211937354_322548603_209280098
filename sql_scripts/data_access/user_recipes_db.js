@@ -4,18 +4,20 @@
 const db = require("../db_connection");
 
 // Create a new personal recipe for a user
-async function createUserRecipe(userId, title, imageUrl, readyInMinutes, popularityScore, isVegan, isVegetarian, isGlutenFree, servings, summary, instructions) {
+async function createUserRecipe(userId, title, imageUrl, readyInMinutes, isVegan, isVegetarian, isGlutenFree, servings, summary, instructions) {
     const query = `
-    INSERT INTO user_recipes (
-      user_id, title, image_url, ready_in_minutes, popularity_score,
-      is_vegan, is_vegetarian, is_gluten_free, servings, summary, instructions
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-    await db.execute(query, [
-        userId, title, imageUrl, readyInMinutes, popularityScore,
+        INSERT INTO user_recipes (
+            user_id, title, image_url, ready_in_minutes,
+            is_vegan, is_vegetarian, is_gluten_free, servings, summary, instructions
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const [result] = await db.execute(query, [
+        userId, title, imageUrl, readyInMinutes,
         isVegan, isVegetarian, isGlutenFree, servings, summary, instructions
     ]);
+    return result.insertId;
 }
+
 
 // Get all recipes created by a specific user
 async function getUserRecipes(userId) {
@@ -58,31 +60,28 @@ async function isUserRecipeOwner(recipeId, userId) {
 }
 
 
-// Update full recipe details by ID
-async function updateUserRecipe(recipeId, title, imageUrl, readyInMinutes, isVegan, isVegetarian, isGlutenFree, servings, summary, instructions) {
+// Update user recipe (supports partial update)
+async function updateUserRecipe(recipeId, updatedFields) {
+    const fields = [];
+    const values = [];
+
+    for (const [key, value] of Object.entries(updatedFields)) {
+        fields.push(`${key} = ?`);
+        values.push(value);
+    }
+
     const query = `
-    UPDATE user_recipes
-    SET
-      title = ?,
-      image_url = ?,
-      ready_in_minutes = ?,
-      is_vegan = ?,
-      is_vegetarian = ?,
-      is_gluten_free = ?,
-      servings = ?,
-      summary = ?,
-      instructions = ?
-    WHERE recipe_id = ?
-  `;
-    await db.execute(query, [
-        title, imageUrl, readyInMinutes, isVegan, isVegetarian, isGlutenFree,
-        servings, summary, instructions, recipeId
-    ]);
+        UPDATE user_recipes
+        SET ${fields.join(", ")}
+        WHERE recipe_id = ?
+    `;
+    values.push(recipeId);
+    await db.execute(query, values);
 }
+
 
 module.exports = {
     isUserRecipeOwner,
-    incrementPopularity,
     createUserRecipe,
     getUserRecipes,
     deleteUserRecipe,

@@ -23,7 +23,6 @@ CREATE TABLE user_recipes (
                               title VARCHAR(255) NOT NULL,
                               image_url VARCHAR(500),
                               ready_in_minutes INT,
-                              popularity_score INT DEFAULT 0,
                               is_vegan BOOLEAN DEFAULT FALSE,
                               is_vegetarian BOOLEAN DEFAULT FALSE,
                               is_gluten_free BOOLEAN DEFAULT FALSE,
@@ -33,6 +32,7 @@ CREATE TABLE user_recipes (
                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                               FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
+
 
 -- Table 3: user_recipe_ingredients
 CREATE TABLE user_recipe_ingredients (

@@ -9,6 +9,31 @@ router.use(verifyLogin);
 
 
 /** User Personal's Recipes **/
+// 🔽 Example of the JSON payload this route expects in the request body:
+/*
+{
+  "title": "Shakshuka Deluxe",
+  "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ1jBhCzrvfCwbg0Dz54EN5XeWw5vVOtdrQhQ&s",
+  "readyInMinutes": 30,
+  "isVegan": false,
+  "isVegetarian": true,
+  "isGlutenFree": true,
+  "servings": 2,
+  "summary": "A delicious spicy tomato and egg dish.",
+  "instructions": "Heat pan, add sauce, crack eggs, cook until ready.",
+  "ingredients": [
+    { "ingredientName": "Eggs", "amount": 3, "unit": "pcs" },
+    { "ingredientName": "Tomato Sauce", "amount": 200, "unit": "ml" }
+  ],
+  "preparationSteps": [
+    { "stepNumber": 1, "stepDescription": "Heat the pan with a bit of oil." },
+    { "stepNumber": 2, "stepDescription": "Add the tomato sauce and simmer for 5 minutes." },
+    { "stepNumber": 3, "stepDescription": "Crack eggs on top and cover the pan." }
+  ]
+}
+
+*/
+
 
 router.post("/user/new-recipe", async (req, res, next) => {
   try {
@@ -20,6 +45,9 @@ router.post("/user/new-recipe", async (req, res, next) => {
   }
 });
 
+
+
+
 router.get("/user/my-recipes", async (req, res, next) => {
   try {
     const recipes = await recipesLogic.getAllUserRecipes(req.user_id);
@@ -29,6 +57,17 @@ router.get("/user/my-recipes", async (req, res, next) => {
     next(error);
   }
 });
+
+router.get("/user/my-recipes/:recipeId", async (req, res, next) => {
+  try {
+    const recipe = await recipesLogic.getUserRecipeById(req.params.recipeId, req.user_id);
+    res.status(200).send(recipe);
+  } catch (error) {
+    console.error("Error fetching personal recipe by ID:", error);
+    next(error);
+  }
+});
+
 
 router.delete("/user/my-recipes/:recipeId", async (req, res, next) => {
   try {
@@ -40,7 +79,28 @@ router.delete("/user/my-recipes/:recipeId", async (req, res, next) => {
   }
 });
 
+// 🔽 Example of the JSON payload this route expects in the request body:
+// Only include fields you want to change; all are optional.
+/*
+example 1:
+{
+  "title": "Shakshuka Supreme",
+  "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ1jBhCzrvfCwbg0Dz54EN5XeWw5vVOtdrQhQ&s",
+  "readyInMinutes": 25,
+  "isVegan": false,
+  "isVegetarian": true,
+  "isGlutenFree": true,
+  "servings": 3,
+  "summary": "A spicy tomato-based breakfast.",
+  "instructions": "Simmer sauce, crack eggs, cover and serve."
+}
 
+example2 :
+{
+  "summary": "Improved description only",
+  "servings": 4
+}
+ */
 router.put("/user/my-recipes/:recipeId", async (req, res, next) => {
   try {
     await recipesLogic.updateUserRecipeDetails(req.params.recipeId, req.body, req.user_id);
@@ -51,7 +111,7 @@ router.put("/user/my-recipes/:recipeId", async (req, res, next) => {
   }
 });
 
-/** Recipe's Ingredients **/
+/** User Recipe's Ingredients **/
 
 
 router.post("/user/my-recipes/:recipeId/ingredients", async (req, res, next) => {
@@ -85,13 +145,26 @@ router.get("/user/my-recipes/:recipeId/ingredients", async (req, res, next) => {
   }
 });
 
+// 🔽 Example of the JSON payload this route expects in the request body:
+// Only include fields you want to change; all are optional.
+/*
+example 1:
+{
+  "ingredientName": "Chopped Tomatoes",
+  "amount": 150,
+  "unit": "grams"
+}
 
-router.put("/user/my-recipes/ingredients/:ingredientId", async (req, res, next) => {
+example 2:
+{ "amount": 2.5 }
+*/
+
+router.put("/user/my-recipes/:recipeId/ingredients/:ingredientId", async (req, res, next) => {
   try {
-    const { ingredientId } = req.params;
+    const { recipeId, ingredientId } = req.params;
     const updatedFields = req.body;
 
-    await recipesLogic.updateIngredient(ingredientId, updatedFields, req.user_id);
+    await recipesLogic.updateIngredient(recipeId, ingredientId, updatedFields, req.user_id);
     res.status(200).send({ message: "Ingredient updated successfully ✅" });
   } catch (error) {
     console.error("Error updating ingredient:", error);
@@ -100,10 +173,11 @@ router.put("/user/my-recipes/ingredients/:ingredientId", async (req, res, next) 
 });
 
 
-router.delete("/user/my-recipes/ingredients/:ingredientId", async (req, res, next) => {
+
+router.delete("/user/my-recipes/:recipeId/ingredients/:ingredientId", async (req, res, next) => {
   try {
-    const { ingredientId } = req.params;
-    await recipesLogic.deleteIngredient(ingredientId, req.user_id);
+    const { recipeId, ingredientId } = req.params;
+    await recipesLogic.deleteIngredient(recipeId, ingredientId, req.user_id);
     res.status(200).send({ message: "Ingredient deleted successfully ✅" });
   } catch (error) {
     console.error("Error deleting ingredient:", error);
@@ -111,7 +185,31 @@ router.delete("/user/my-recipes/ingredients/:ingredientId", async (req, res, nex
   }
 });
 
+
 /** Family's Recipes **/
+// 🔽 Example of JSON payload expected when creating a family recipe:
+/*
+{
+  "title": "Grandma's Apple Pie",
+  "ownerName": "Grandma Esther",
+  "whenToPrepare": "Holidays",
+  "imageUrl": "https://www.cubesnjuliennes.com/wp-content/uploads/2020/11/Apple-Pie.jpg",
+  "readyInMinutes": 90,
+  "servings": 8,
+  "instructions": "Preheat oven to 180C...",
+  "ingredients": [
+    { "ingredientName": "Apples", "amount": 6, "unit": "pieces" },
+    { "ingredientName": "Sugar", "amount": 1, "unit": "cup" },
+    { "ingredientName": "Flour", "amount": 2, "unit": "cups" }
+  ],
+  "preparationSteps": [
+    { "stepNumber": 1, "stepDescription": "Peel and slice apples" },
+    { "stepNumber": 2, "stepDescription": "Mix apples with sugar and flour" },
+    { "stepNumber": 3, "stepDescription": "Pour into crust and bake" }
+  ]
+}
+*/
+
 
 router.post("/user/family-recipes", async (req, res, next) => {
   try {
@@ -134,7 +232,7 @@ router.get("/user/my-family-recipes", async (req, res, next) => {
 });
 
 
-router.get("/family/:recipeId", async (req, res, next) => {
+router.get("/user/my-family-recipes/:recipeId", async (req, res, next) => {
   try {
     const recipe = await recipesLogic.getFamilyRecipeById(req.params.recipeId, req.user_id);
     if (!recipe) return res.status(404).send({ message: "Recipe not found" });
@@ -147,6 +245,26 @@ router.get("/family/:recipeId", async (req, res, next) => {
 
 
 
+// 🔽 Example JSON payloads for partial or full family recipe update:
+/*
+example 1 – full update:
+{
+  "title": "Holiday Apple Pie",
+  "ownerName": "Grandma Esther",
+  "whenToPrepare": "Thanksgiving",
+  "imageUrl": "https://images.com/pie.jpg",
+  "readyInMinutes": 95,
+  "servings": 10,
+  "instructions": "Preheat oven, fill crust, bake until golden."
+}
+
+example 2 – partial update:
+{
+  "title": "Updated Pie Title",
+  "servings": 6
+}
+*/
+
 router.put("/user/my-family-recipes/:recipeId", async (req, res, next) => {
   try {
     await recipesLogic.updateFamilyRecipe(req.params.recipeId, req.body, req.user_id);
@@ -156,6 +274,7 @@ router.put("/user/my-family-recipes/:recipeId", async (req, res, next) => {
     next(error);
   }
 });
+
 
 
 router.delete("/user/my-family-recipes/:recipeId", async (req, res, next) => {
@@ -176,11 +295,10 @@ router.delete("/user/my-family-recipes/:recipeId", async (req, res, next) => {
 router.post("/user/my-family-recipes/:recipeId/ingredients", async (req, res, next) => {
   try {
     const { ingredientName, amount, unit } = req.body;
+    const { recipeId } = req.params;
+
     await recipesLogic.addIngredientToFamilyRecipe(
-        req.params.recipeId,
-        ingredientName,
-        amount,
-        unit
+        req.user_id, recipeId, ingredientName, amount, unit
     );
     res.status(201).send({ message: "Ingredient added successfully 🧂" });
   } catch (error) {
@@ -188,6 +306,7 @@ router.post("/user/my-family-recipes/:recipeId/ingredients", async (req, res, ne
     next(error);
   }
 });
+
 
 
 router.get("/user/my-family-recipes/:recipeId/ingredients", async (req, res, next) => {
@@ -199,7 +318,21 @@ router.get("/user/my-family-recipes/:recipeId/ingredients", async (req, res, nex
     next(error);
   }
 });
+// 🔽 Example JSON payloads for updating a family recipe ingredient:
+/*
+example 1 – full update:
+{
+  "ingredientName": "Brown Sugar",
+  "amount": 0.75,
+  "unit": "cups"
+}
 
+example 2 – partial update:
+{
+  "amount": 2.5
+}
+*/
+// Only non-empty fields will be updated. At least one field must be present.
 
 router.put("/user/my-family-recipes/:recipeId/ingredients/:ingredientId", async (req, res, next) => {
   try {
@@ -212,12 +345,13 @@ router.put("/user/my-family-recipes/:recipeId/ingredients/:ingredientId", async 
         unit,
         req.user_id
     );
-    res.status(200).send({ message: "Ingredient updated or added successfully ✅" });
+    res.status(200).send({ message: "Ingredient updated successfully ✅" });
   } catch (error) {
-    console.error("Error updating/adding family recipe ingredient:", error);
+    console.error("Error updating family recipe ingredient:", error);
     next(error);
   }
 });
+
 
 
 
@@ -235,38 +369,21 @@ router.delete("/user/my-family-recipes/:recipeId/ingredients/:ingredientId", asy
   }
 });
 
-
 /** recipe_preparation_steps **/
-router.post("/steps", async (req, res, next) => {
+
+
+// 🔽 This route handles preparation steps for user, family, or spoonacular recipes.
+// The `:type` parameter must be one of: 'my-recipes', 'my-family-recipes', 'spoonacular'
+//
+// Examples:
+//   GET    /user/my-recipes/42/steps
+//   GET    /user/my-family-recipes/87/steps
+//   GET    /user/spoonacular/12345/steps
+
+router.get("/user/:type/:recipeId/steps", async (req, res, next) => {
   try {
-    const { userRecipeId = null, familyRecipeId = null, stepNumber, stepDescription } = req.body;
-
-    await recipesLogic.addPreparationStepToRecipe(
-        userRecipeId,
-        familyRecipeId,
-        stepNumber,
-        stepDescription,
-        req.user_id
-    );
-
-    res.status(201).send({ message: "Step added successfully ✅" });
-  } catch (error) {
-    console.error("Error adding step:", error);
-    next(error);
-  }
-});
-
-
-router.get("/steps", async (req, res, next) => {
-  try {
-    const { userRecipeId = null, familyRecipeId = null } = req.query;
-
-    const steps = await recipesLogic.getPreparationSteps(
-        userRecipeId ? parseInt(userRecipeId) : null,
-        familyRecipeId ? parseInt(familyRecipeId) : null,
-        req.user_id
-    );
-
+    const { type, recipeId } = req.params;
+    const steps = await recipesLogic.getPreparationSteps(type, parseInt(recipeId), req.user_id);
     res.status(200).send(steps);
   } catch (error) {
     console.error("Error fetching preparation steps:", error);
@@ -276,16 +393,62 @@ router.get("/steps", async (req, res, next) => {
 
 
 
-router.put("/steps/:stepId", async (req, res, next) => {
+
+// 🔽 This route handles adding preparation steps for both user and family recipes.
+// The `:type` parameter must be either 'my-recipes' or 'my-family-recipes'.
+//
+// Examples:
+//   POST /user/my-recipes/42/steps           → adds a step to personal recipe 42
+//   POST /user/my-family-recipes/87/steps    → adds a step to family recipe 87
+
+router.post("/user/:type/:recipeId/steps", async (req, res, next) => {
   try {
-    const { stepId } = req.params;
+    const { type, recipeId } = req.params;
+    const { stepNumber, stepDescription } = req.body;
+
+    await recipesLogic.addPreparationStepToRecipe(
+        type,
+        parseInt(recipeId),
+        stepNumber,
+        stepDescription,
+        req.user_id
+    );
+
+    res.status(201).send({ message: "Step added successfully ✅" });
+  } catch (error) {
+    console.error("Error adding preparation step:", error);
+    next(error);
+  }
+});
+
+
+
+
+// 🔽 Updates the description of a preparation step by ID.
+// This route supports both personal and family recipes via the `:type` parameter.
+// `:type` must be either 'my-recipes' or 'my-family-recipes'.
+//
+// Examples:
+//   PUT /user/my-recipes/steps/13           → updates step 13 from a personal recipe
+//   PUT /user/my-family-recipes/steps/42    → updates step 42 from a family recipe
+//
+// Only the `step_description` can be updated. Changing step_number is not allowed.
+
+router.put("/user/:type/steps/:stepId", async (req, res, next) => {
+  try {
+    const { type, stepId } = req.params;
     const { newDescription } = req.body;
+
+    // Validate type
+    if (!["my-recipes", "my-family-recipes"].includes(type)) {
+      return res.status(400).send({ message: "Invalid recipe type. Must be 'my-recipes' or 'my-family-recipes'." });
+    }
 
     if (!newDescription) {
       return res.status(400).send({ message: "New description is required." });
     }
 
-    await recipesLogic.updatePreparationStep(stepId, newDescription);
+    await recipesLogic.updatePreparationStep(type, parseInt(stepId), newDescription, req.user_id);
     res.status(200).send({ message: "Step updated successfully ✅" });
   } catch (error) {
     console.error("Error updating step description:", error);
@@ -294,29 +457,19 @@ router.put("/steps/:stepId", async (req, res, next) => {
 });
 
 
-router.put("/steps/:stepId", async (req, res, next) => {
+// 🔽 Deletes a preparation step by its ID for both user and family recipes.
+// Requires `:type` to distinguish recipe type: either 'my-recipes' or 'my-family-recipes'.
+//
+// Examples:
+//   DELETE /user/my-recipes/steps/12
+//   DELETE /user/my-family-recipes/steps/48
+//
+// A recipe must retain at least one step after deletion.
+// Remaining steps are renumbered to preserve sequence (step_number).
+router.delete("/user/:type/steps/:stepId", async (req, res, next) => {
   try {
-    const { stepId } = req.params;
-    const { newDescription } = req.body;
-
-    if (!newDescription) {
-      return res.status(400).send({ message: "New description is required." });
-    }
-
-    await recipesLogic.updatePreparationStep(parseInt(stepId), newDescription, req.user_id);
-    res.status(200).send({ message: "Step updated successfully ✅" });
-  } catch (error) {
-    console.error("Error updating step description:", error);
-    next(error);
-  }
-});
-
-router.delete("/steps/:stepId", async (req, res, next) => {
-  try {
-    const stepId = parseInt(req.params.stepId);
-    const userId = req.user_id;
-
-    await recipesLogic.deletePreparationStep(stepId, userId);
+    const { type, stepId } = req.params;
+    await recipesLogic.deletePreparationStep(type, parseInt(stepId), req.user_id);
     res.status(200).send({ message: "Step deleted successfully 🗑️" });
   } catch (error) {
     console.error("Error deleting preparation step:", error);
@@ -326,57 +479,24 @@ router.delete("/steps/:stepId", async (req, res, next) => {
 
 
 
-router.delete("/steps", async (req, res, next) => {
-  try {
-    const { userRecipeId = null, familyRecipeId = null } = req.body;
-
-    if (!userRecipeId && !familyRecipeId) {
-      return res.status(400).send({ message: "Must provide either userRecipeId or familyRecipeId." });
-    }
-
-    await recipesLogic.deleteAllStepsForRecipe(userRecipeId, familyRecipeId, req.user_id);
-    res.status(200).send({ message: "All steps deleted successfully 🚮" });
-  } catch (error) {
-    console.error("Error deleting all steps:", error);
-    next(error);
-  }
-});
-
 
 /** recipe_preparation_progress **/
 
-router.post("/steps/progress", async (req, res, next) => {
+// ✅ Mark a preparation step as completed (personal, family, or spoonacular)
+// Examples:
+//   PUT /user/my-recipes/42/steps/3/complete
+//   PUT /user/my-family-recipes/7/steps/2/complete
+//   PUT /user/spoonacular/123456/steps/1/complete
+
+router.put("/user/:type/:recipeId/steps/:stepNumber/complete", async (req, res, next) => {
   try {
-    const { spoonacularId = null, userRecipeId = null, familyRecipeId = null, stepNumber } = req.body;
-
-    await recipesLogic.addPreparationStepProgress(
-        req.user_id,
-        spoonacularId,
-        userRecipeId,
-        familyRecipeId,
-        stepNumber
-    );
-
-    res.status(201).send({ message: "Progress step added successfully ✅" });
-  } catch (error) {
-    console.error("Error adding progress step:", error);
-    next(error);
-  }
-});
-
-
-router.put("/steps/progress/complete", async (req, res, next) => {
-  try {
-    const { spoonacularId = null, userRecipeId = null, familyRecipeId = null, stepNumber } = req.body;
-
+    const { type, recipeId, stepNumber } = req.params;
     await recipesLogic.completePreparationStep(
-        req.user_id,
-        spoonacularId,
-        userRecipeId,
-        familyRecipeId,
-        stepNumber
+        type,
+        parseInt(recipeId),
+        parseInt(stepNumber),
+        req.user_id
     );
-
     res.status(200).send({ message: "Step marked as completed ✅" });
   } catch (error) {
     console.error("Error completing step:", error);
@@ -385,16 +505,22 @@ router.put("/steps/progress/complete", async (req, res, next) => {
 });
 
 
-router.put("/steps/progress/uncomplete", async (req, res, next) => {
+
+// 🔽 Unmark a preparation step as completed (personal, family, or spoonacular)
+// Examples:
+//   PUT /user/my-recipes/42/steps/3/uncomplete
+//   PUT /user/my-family-recipes/7/steps/2/uncomplete
+//   PUT /user/spoonacular/123456/steps/1/uncomplete
+
+router.put("/user/:type/:recipeId/steps/:stepNumber/uncomplete", async (req, res, next) => {
   try {
-    const { spoonacularId = null, userRecipeId = null, familyRecipeId = null, stepNumber } = req.body;
+    const { type, recipeId, stepNumber } = req.params;
 
     await recipesLogic.uncompletePreparationStep(
-        req.user_id,
-        spoonacularId,
-        userRecipeId,
-        familyRecipeId,
-        stepNumber
+        type,
+        parseInt(recipeId),
+        parseInt(stepNumber),
+        req.user_id
     );
 
     res.status(200).send({ message: "Step marked as uncompleted 🔄" });
@@ -405,15 +531,20 @@ router.put("/steps/progress/uncomplete", async (req, res, next) => {
 });
 
 
-router.get("/steps/progress", async (req, res, next) => {
+// 🔽 Get progress status for a recipe (user/family/spoonacular) for a specific user
+// Examples:
+//   GET /user/my-recipes/42/steps/progress
+//   GET /user/my-family-recipes/15/steps/progress
+//   GET /user/spoonacular/339821/steps/progress
+
+router.get("/user/:type/:recipeId/steps/progress", async (req, res, next) => {
   try {
-    const { spoonacularId = null, userRecipeId = null, familyRecipeId = null } = req.query;
+    const { type, recipeId } = req.params;
 
     const progress = await recipesLogic.getRecipeProgress(
-        req.user_id,
-        spoonacularId,
-        userRecipeId,
-        familyRecipeId
+        type,
+        parseInt(recipeId),
+        req.user_id
     );
 
     res.status(200).send(progress);
@@ -424,16 +555,20 @@ router.get("/steps/progress", async (req, res, next) => {
 });
 
 
-/** Reset preparation progress (for restarting a recipe session) */
-router.delete("/steps/progress", async (req, res, next) => {
+// 🔽 Reset progress tracking for a given recipe type and user
+// Examples:
+//   DELETE /user/my-recipes/42/steps/progress
+//   DELETE /user/my-family-recipes/17/steps/progress
+//   DELETE /user/spoonacular/491209/steps/progress
+
+router.delete("/user/:type/:recipeId/steps/progress", async (req, res, next) => {
   try {
-    const { spoonacularId = null, userRecipeId = null, familyRecipeId = null } = req.query;
+    const { type, recipeId } = req.params;
 
     await recipesLogic.resetRecipeProgress(
-        req.user_id,
-        spoonacularId,
-        userRecipeId,
-        familyRecipeId
+        type,
+        parseInt(recipeId),
+        req.user_id
     );
 
     res.status(200).send({ message: "Preparation progress reset successfully 🔄" });
@@ -442,6 +577,7 @@ router.delete("/steps/progress", async (req, res, next) => {
     next(error);
   }
 });
+
 
 
 

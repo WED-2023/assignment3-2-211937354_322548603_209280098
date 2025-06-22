@@ -1,4 +1,4 @@
-# 📁 routes/ – Routing & Request Handling Layer 
+# 📁 routes/ – Routing & Request Handling Layer
 
 This folder manages the **main routing layer** of the backend – defining which files expose endpoints, handle user sessions, access the database, or communicate with external APIs like Spoonacular.
 
@@ -10,7 +10,7 @@ This folder manages the **main routing layer** of the backend – defining which
 routes/
 ├── auth.js                     # Login & registration routes
 ├── user.js                     # Routes for favorites, views, meal plan, etc.
-├── recipes.js                  # Routes for personal and family recipe actions
+├── recipes.js                  # Routes for personal, family, and Spoonacular recipe actions
 ├── recipes_combined_utils.js   # Smart integration layer for unified recipe display
 ├── utils/
 │   ├── recipes_utils.js        # Handles all recipe-related DB operations
@@ -30,7 +30,7 @@ routes/
 
 - `auth.js` – Session-based login and signup
 - `user.js` – Protected routes for managing views, favorites, meal plans
-- `recipes.js` – Accessing and manipulating personal/family recipes
+- `recipes.js` – Accessing and manipulating personal, family, and Spoonacular recipe data
 - `spooncular.js` – Open routes to search/view public recipes via Spoonacular
 - `middleware/verifyLogin.js` – Attaches `req.user` to requests, or blocks them if unauthenticated
 
@@ -67,7 +67,7 @@ This file plays a **central role** when displaying multiple recipes together fro
   - Viewing recent recipe views
   - Viewing meal plans
 
-It orchestrates logic across `spoonacular_actions.js`, `user_utils.js`, and `recipes_utils.js` to return unified recipe objects for the frontend.
+It orchestrates logic across `spooncular_actions.js`, `user_utils.js`, and `recipes_utils.js` to return unified recipe objects for the frontend.
 
 📌 Without this file, you would have to manually determine the source of each recipe and call the correct fetch function.
 
@@ -134,6 +134,28 @@ function fetchRecipesBySearch(...) {
 
 This ensures the module loads only **after** its dependencies are ready.
 
+---
+
+## 🔄 New Recipe Routing Capabilities
+
+As of the latest system updates, `recipes.js` now supports routing and progress tracking for:
+- `spoonacular` recipes (read-only, with progress tracking only)
+- `my-recipes` and `my-family-recipes` (full CRUD)
+
+Progress is always tracked via the shared `recipe_preparation_progress` table, regardless of source.
+
+---
+## 🔄 Automatic Synchronization Between Preparation Steps and Progress
+
+The route system now includes automatic mechanisms that synchronize between the `recipe_preparation_steps` and `recipe_preparation_progress` tables. Below are the key behaviors:
+
+- ✅ Creating a step (`POST /steps`) automatically creates a corresponding progress entry for the current user.
+- 🔁 When inserting a step with an existing step number, all steps with greater or equal numbers are shifted forward — and corresponding progress entries are shifted as well.
+- 🗑️ Deleting a step also deletes its corresponding progress entry, and remaining steps are shifted backward in both tables.
+- ✏️ Updating a step description (only the description) does **not** affect progress.
+- 🔁 A recipe reset operation marks all progress entries as uncompleted, effectively resetting the progress tracking.
+
+These behaviors apply to all recipe types: personal, family, and Spoonacular-based.
 
 ---
 
@@ -141,3 +163,4 @@ This ensures the module loads only **after** its dependencies are ready.
 
 - No route file talks directly to the DB – always through `*_utils.js`
 - Only `recipes_combined_utils.js` supports hybrid queries across sources (e.g. meal plan)
+

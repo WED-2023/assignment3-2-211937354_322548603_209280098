@@ -34,18 +34,29 @@ function sliceRecipeDetails(recipe) {
         glutenFree: recipe.glutenFree
     };
 }
-
 /**
- * Extract step-by-step instructions only
- * Used in: GET /instructions endpoint
+ * Slices analyzed instructions from raw API data.
+ * Removes internal fields and retains only what's needed for display.
+ *
+ * Output format aligns with internal DB:
+ * [{ number: 1, step: "Do something" }, ...]
+ *
+ * @param {Array} rawInstructions
+ * @returns {Array} - Cleaned and standardized step list
  */
-function sliceAnalyzedInstructions(instructionsArray) {
-    const steps = instructionsArray?.[0]?.steps || [];
-    return steps.map(step => ({
-        stepNumber: step.number, // Step number (1-based)
-        stepDescription: step.step // Instruction text
+function sliceAnalyzedInstructions(rawInstructions) {
+    if (!Array.isArray(rawInstructions) || rawInstructions.length === 0) return [];
+
+    const mainBlock = rawInstructions[0]; // Use only the first block of instructions
+    if (!mainBlock || !Array.isArray(mainBlock.steps)) return [];
+
+    return mainBlock.steps.map(step => ({
+        number: step.number,
+        step: step.step
     }));
 }
+
+
 
 module.exports = {
     sliceRecipeOverview,

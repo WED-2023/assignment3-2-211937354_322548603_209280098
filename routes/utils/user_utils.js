@@ -15,34 +15,22 @@ const mealPlanDB = require("../../sql_scripts/data_access/meal_plans_db");
 
 
 /**
- * Adds a recipe to user's favorites, if not already added.
- * Automatically detects the source of the recipe:
- * - If recipe belongs to user's personal recipes → source = "user"
- * - If recipe belongs to user's family recipes → source = "family"
- * - Otherwise → assumed to be from Spoonacular API
+ * Adds a Spoonacular recipe to the user's favorites list – only if not already added.
  *
- * This source information is saved in the DB to enable proper enrichment when retrieving favorites.
+ * Notes:
+ * - This function supports **Spoonacular recipes only** (not personal or family recipes).
+ * - The recipe is saved under `source = "spoonacular"` in the `user_favorites` table.
+ * - Used for enabling personalized "Favorites" view in the frontend.
+ *
+ * @param {number} userId - ID of the user performing the action
+ * @param {number} recipeId - Spoonacular recipe ID to be favorited
  */
 
 async function addFavoriteRecipe(userId, recipeId) {
     const currentFavorites = await favoritesDB.getFavoritesByUserId(userId);
     if (currentFavorites.some(fav => fav.spoonacular_recipe_id === recipeId)) return;
 
-    const recipesUtils = require("./recipes_utils");
-
-    let source = "spoonacular";
-
-    const userRecipes = await recipesUtils.getAllUserRecipes(userId);
-    if (userRecipes.some(r => r.recipe_id === recipeId)) {
-        source = "user";
-    } else {
-        const familyRecipes = await recipesUtils.getFamilyRecipesByUserId(userId);
-        if (familyRecipes.some(r => r.recipe_id === recipeId)) {
-            source = "family";
-        }
-    }
-
-    await favoritesDB.addFavorite(userId, recipeId, source);
+    await favoritesDB.addFavorite(userId, recipeId, "spoonacular");
 }
 
 

@@ -10,8 +10,10 @@ async function createFamilyRecipe(userId, title, ownerName, whenToPrepare, image
             user_id, title, owner_name, when_to_prepare, image_url, ready_in_minutes, servings, instructions
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    await db.execute(query, [userId, title, ownerName, whenToPrepare, imageUrl, readyInMinutes, servings, instructions]);
+    const [result] = await db.execute(query, [userId, title, ownerName, whenToPrepare, imageUrl, readyInMinutes, servings, instructions]);
+    return result.insertId;
 }
+
 
 
 
@@ -61,6 +63,7 @@ async function isRecipeOwnedByUser(recipeId, userId) {
     );
     return !!row;
 }
+
 
 
 module.exports = {

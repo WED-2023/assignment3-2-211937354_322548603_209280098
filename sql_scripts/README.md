@@ -234,6 +234,18 @@ While both tables record user interactions, they serve distinct purposes:
 
 This separation allows the system to analyze search intent vs. actual behavior.
 
+### 🔄 Automatic Sync Between Steps and Progress
+
+The system automatically keeps the `recipe_preparation_steps` and `recipe_preparation_progress` tables in sync:
+
+- ✅ Adding a new step creates a corresponding `progress` entry for the current user.
+- 🔁 Inserting a step at an existing number shifts all later steps forward – and updates `progress` accordingly.
+- 🗑️ Deleting a step also deletes its `progress` entry – remaining steps are renumbered in both tables.
+- ✏️ Editing the step description does not affect progress.
+- 🔁 Resetting a recipe clears the `is_completed` status and timestamp for all related steps.
+
+These behaviors apply to all recipe types: user-created, family, and Spoonacular.
+
 ---
 
 ## ✅ Summary

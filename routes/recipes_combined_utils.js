@@ -22,14 +22,15 @@ async function getMultipleRecipeDetails(recipes, userId) {
                     break;
 
                 case "user":
-                    // Assuming you have a way to get one user's recipe by ID
+                    // Fetch personal recipes of the user and match by recipe_id
                     const allUserRecipes = await recipesUtils.getAllUserRecipes(userId);
-                    const userRecipe = allUserRecipes.find(r => r.id === recipe.id);
+                    const userRecipe = allUserRecipes.find(r => r.recipe_id === recipe.id);
                     if (userRecipe) results.push(userRecipe);
                     break;
 
                 case "family":
-                    const familyRecipe = await recipesUtils.getFamilyRecipeById(recipe.id);
+                    // Match only if the family recipe belongs to the user
+                    const familyRecipe = await recipesUtils.getFamilyRecipeById(recipe.id, userId);
                     if (familyRecipe) results.push(familyRecipe);
                     break;
 
@@ -43,6 +44,7 @@ async function getMultipleRecipeDetails(recipes, userId) {
 
     return results;
 }
+
 
 
 

@@ -4,17 +4,16 @@
 const db = require("../db_connection");
 
 // Add a new preparation step for tracking (for a specific recipe type)
-async function addPreparationStepProgress(userId, spoonacularId, userRecipeId, familyRecipeId, stepNumber) {
+async function addPreparationStepProgress({userId, spoonacularRecipeId = null, userRecipeId = null, familyRecipeId = null, stepNumber}) {
     const query = `
-        INSERT INTO recipe_preparation_progress (
-            user_id, spoonacular_recipe_id, user_recipe_id, family_recipe_id, step_number
-        )
+        INSERT INTO recipe_preparation_progress (user_id, spoonacular_recipe_id, user_recipe_id, family_recipe_id, step_number)
         VALUES (?, ?, ?, ?, ?)
     `;
-    await db.execute(query, [userId, spoonacularId, userRecipeId, familyRecipeId, stepNumber]);
+    await db.execute(query, [userId, spoonacularRecipeId, userRecipeId, familyRecipeId, stepNumber]);
 }
 
-// Mark a step as completed
+
+// ✅ Marks a step as completed for a given user and recipe context
 async function completeStep(userId, spoonacularId, userRecipeId, familyRecipeId, stepNumber) {
     const query = `
         UPDATE recipe_preparation_progress
@@ -24,7 +23,8 @@ async function completeStep(userId, spoonacularId, userRecipeId, familyRecipeId,
     await db.execute(query, [userId, spoonacularId, userRecipeId, familyRecipeId, stepNumber]);
 }
 
-// Get progress for a specific recipe (per user)
+
+// Retrieves progress records for a specific recipe and user
 async function getProgressForRecipe(userId, spoonacularId, userRecipeId, familyRecipeId) {
     const [rows] = await db.execute(
         `SELECT * FROM recipe_preparation_progress
@@ -35,7 +35,7 @@ async function getProgressForRecipe(userId, spoonacularId, userRecipeId, familyR
     return rows;
 }
 
-// Unmark a previously completed step (set is_completed = false and clear completed_at)
+// ✅ Unmarks a previously completed step (reset is_completed and clear completed_at)
 async function uncompleteStep(userId, spoonacularId, userRecipeId, familyRecipeId, stepNumber) {
     const query = `
         UPDATE recipe_preparation_progress
@@ -51,20 +51,59 @@ async function uncompleteStep(userId, spoonacularId, userRecipeId, familyRecipeI
 }
 
 
-// Reset progress (e.g., for restarting recipe session)
-async function deleteProgressForRecipe(userId, spoonacularId, userRecipeId, familyRecipeId) {
+// Reset progress for all steps in a recipe (sets is_completed = false and clears timestamp)
+async function resetProgressForRecipe(userId, spoonacularId, userRecipeId, familyRecipeId) {
     await db.execute(
-        `DELETE FROM recipe_preparation_progress
-         WHERE user_id = ? AND spoonacular_recipe_id <=> ? AND user_recipe_id <=> ? AND family_recipe_id <=> ?`,
+        `UPDATE recipe_preparation_progress
+         SET is_completed = FALSE,
+             completed_at = NULL
+         WHERE user_id = ?
+           AND spoonacular_recipe_id <=> ?
+           AND user_recipe_id <=> ?
+           AND family_recipe_id <=> ?`,
         [userId, spoonacularId, userRecipeId, familyRecipeId]
     );
 }
 
 
+/**
+ * Shifts all progress step numbers (>= given) forward by 1
+ * for a specific recipe type (only one recipe ID should be non-null).
+ */
+async function shiftProgressStepsForward(spoonacularId, userRecipeId, familyRecipeId, fromStep) {
+    await db.execute(`
+        UPDATE recipe_preparation_progress
+        SET step_number = step_number + 1
+        WHERE spoonacular_recipe_id <=> ?
+          AND user_recipe_id <=> ?
+          AND family_recipe_id <=> ?
+          AND step_number >= ?
+    `, [spoonacularId, userRecipeId, familyRecipeId, fromStep]);
+}
+
+/**
+ * Shifts progress steps backward starting from a specific step number.
+ * Used when a step is deleted – all steps after it are renumbered.
+ */
+async function shiftProgressStepsBackward(spoonacularId, userRecipeId, familyRecipeId, fromStep) {
+    await db.execute(`
+        UPDATE recipe_preparation_progress
+        SET step_number = step_number - 1
+        WHERE spoonacular_recipe_id <=> ?
+          AND user_recipe_id <=> ?
+          AND family_recipe_id <=> ?
+          AND step_number > ?
+    `, [spoonacularId, userRecipeId, familyRecipeId, fromStep]);
+}
+
+
+
 module.exports = {
+    shiftProgressStepsBackward,
+    shiftProgressStepsForward,
     addPreparationStepProgress,
     completeStep,
     uncompleteStep,
     getProgressForRecipe,
-    deleteProgressForRecipe
+    resetProgressForRecipe
 };

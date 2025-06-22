@@ -80,11 +80,25 @@ async function fetchRecipesBySearch(searchCriteria, userId = null) {
     return sliced;
 }
 
+/**
+ * Fetch analyzed preparation instructions from Spoonacular.
+ * Only works for logged-in users.
+ * Returns instructions sliced to match UI format.
+ *
+ * @param {number} recipeId - ID of the Spoonacular recipe
+ * @returns {Promise<Array>} - Array of step objects without 'id' or 'ingredients'
+ */
+async function fetchAnalyzedInstructions(recipeId) {
+    const raw = await spoonacularConnect.getFromSpoonacular(`/${recipeId}/analyzedInstructions`);
+    return slices.sliceAnalyzedInstructions(raw);
+}
+
 
 
 
 
 module.exports = {
+    fetchAnalyzedInstructions,
     fetchRandomRecipes,
     fetchRecipeById,
     fetchRecipesBySearch

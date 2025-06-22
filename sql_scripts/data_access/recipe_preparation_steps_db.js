@@ -64,7 +64,35 @@ async function deleteAllStepsByRecipe(userRecipeId, familyRecipeId) {
     await db.execute(query, [userRecipeId, familyRecipeId]);
 }
 
+// Shift all steps forward (step_number++) starting from a given step number
+async function shiftStepNumbersForward(userRecipeId, familyRecipeId, fromStepNumber) {
+    const query = `
+        UPDATE recipe_preparation_steps
+        SET step_number = step_number + 1
+        WHERE (user_recipe_id <=> ?) AND (family_recipe_id <=> ?)
+        AND step_number >= ?
+        ORDER BY step_number DESC
+    `;
+    await db.execute(query, [userRecipeId, familyRecipeId, fromStepNumber]);
+}
+
+// Shift down all steps with higher step_number (after deletion)
+async function shiftStepNumbersBackward(userRecipeId, familyRecipeId, deletedStepNumber) {
+    const query = `
+        UPDATE recipe_preparation_steps
+        SET step_number = step_number - 1
+        WHERE (user_recipe_id <=> ?) AND (family_recipe_id <=> ?)
+        AND step_number > ?
+        ORDER BY step_number ASC
+    `;
+    await db.execute(query, [userRecipeId, familyRecipeId, deletedStepNumber]);
+}
+
+
+
 module.exports = {
+    shiftStepNumbersBackward,
+    shiftStepNumbersForward,
     getStepById,
     addPreparationStep,
     getStepsByRecipeId,
