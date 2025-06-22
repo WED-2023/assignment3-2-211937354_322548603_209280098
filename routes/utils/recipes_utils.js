@@ -963,13 +963,10 @@ async function uncompletePreparationStep(type, recipeId, stepNumber, userId) {
 }
 
 /**
- * Retrieves preparation progress for a user and recipe.
+ * Retrieves percentage of completed preparation steps for a given recipe and user.
  * Supports all recipe types: user, family, and spoonacular.
  *
- * @param {string} type - 'my-recipes' | 'my-family-recipes' | 'spoonacular'
- * @param {number} recipeId - ID of the recipe
- * @param {number} userId - ID of the current user
- * @returns {Promise<Array>} - Array of progress objects (one per step)
+ * Returns: { total: number, completed: number, percentage: number }
  */
 async function getRecipeProgress(type, recipeId, userId) {
     if (!["my-recipes", "my-family-recipes", "spoonacular"].includes(type)) {
@@ -982,13 +979,20 @@ async function getRecipeProgress(type, recipeId, userId) {
     const userRecipeId = type === "my-recipes" ? recipeId : null;
     const familyRecipeId = type === "my-family-recipes" ? recipeId : null;
 
-    return await recipeProgressDB.getProgressForRecipe(
+    const rows = await recipeProgressDB.getProgressForRecipe(
         userId,
         spoonacularId,
         userRecipeId,
         familyRecipeId
     );
+
+    const total = rows.length;
+    const completed = rows.filter(r => r.is_completed).length;
+    const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+    return { total, completed, percentage };
 }
+
 
 /**
  * Resets the preparation progress for a given recipe type (user/family/spoonacular).

@@ -97,8 +97,21 @@ async function shiftProgressStepsBackward(spoonacularId, userRecipeId, familyRec
 }
 
 
+// Deletes all preparation progress entries for a given user and recipe
+async function deleteProgressForRecipe(userId, spoonacularId, userRecipeId, familyRecipeId) {
+    await db.execute(
+        `DELETE FROM recipe_preparation_progress
+         WHERE user_id = ?
+           AND spoonacular_recipe_id <=> ?
+           AND user_recipe_id <=> ?
+           AND family_recipe_id <=> ?`,
+        [userId, spoonacularId, userRecipeId, familyRecipeId]
+    );
+}
+
 
 module.exports = {
+    deleteProgressForRecipe,
     shiftProgressStepsBackward,
     shiftProgressStepsForward,
     addPreparationStepProgress,

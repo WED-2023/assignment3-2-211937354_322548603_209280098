@@ -26,15 +26,15 @@ VALUES
     ('Lidor','Lidor','Mashiach','Israel','Lidorm1612@gmail.com','$2b$11$aZUjwdnAcyYg.XtVGuaHNOnrwHZzqasdtk57lnakBf/Bk708lYSH2');
 
 -- Insert into Table 2: user_recipes
-INSERT INTO user_recipes (user_id, title, image_url, ready_in_minutes, popularity_score, is_vegan, is_vegetarian, is_gluten_free, servings, summary, instructions)
+INSERT INTO user_recipes (user_id, title, image_url, ready_in_minutes, is_vegan, is_vegetarian, is_gluten_free, servings, summary, instructions)
 VALUES
-    (1, 'Vegan Quinoa Salad', 'https://shaneandsimple.com/wp-content/uploads/2024/04/EASY-Mediterranean-Quinoa-Salad-simple-oilfree-healthy-recipes-shaneandsimple-2-1157x1536.jpg', 20, 85, TRUE, TRUE, TRUE, 4, 'Fresh and healthy quinoa salad with vegetables', 'This is a light and refreshing salad perfect for any occasion.'),
-    (2, 'Classic Spaghetti Carbonara', 'https://www.sweetteaandthyme.com/wp-content/uploads/2018/09/spaghetti-alla-carbonara-45-e1545077413444.jpg', 25, 92, FALSE, FALSE, FALSE, 2, 'Traditional Italian pasta with eggs and pancetta', 'This pasta dish combines savory pancetta with a creamy egg-based sauce.'),
-    (3, 'Chocolate Chip Cookies', 'https://www.onceuponachef.com/images/2021/11/Best-Chocolate-Chip-Cookies.jpg', 30, 78, FALSE, TRUE, FALSE, 24, 'Homemade chocolate chip cookies', 'These cookies are crispy on the outside and chewy on the inside.'),
-    (4, 'Green Omelette', 'https://www.encore-more.com/wp-content/uploads/2021/07/Herbs-Greens-Omelette-Encore-More-e1626452421527-500x500.jpg', 10, 4, FALSE, TRUE, TRUE, 2, 'A light, healthy herb omelette with a Mediterranean twist.', 'A quick and nutritious omelette with a refreshing herbal flavor.'),
-    (4, 'Lamb Chops with Garlic & Rosemary', 'https://tatyanaseverydayfood.com/wp-content/uploads/2020/06/Garlic-Herb-Grilled-Lamb-Chops-3-768x1024.jpg', 35, 5, FALSE, FALSE, TRUE, 2, 'Juicy lamb chops marinated with garlic, rosemary, and olive oil – seared to perfection.', 'Tender lamb chops that deliver bold flavors and a satisfying texture.'),
-    (4, 'Chestnut Mushroom Gnocchi', 'https://annabanana.co/wp-content/uploads/2017/09/Mushroom-Gnocchi-with-Thyme-11-of-17-1.jpg', 25, 5, FALSE, TRUE, FALSE, 3, 'Creamy gnocchi with sautéed chestnut mushrooms, garlic, thyme, and parmesan.', 'A creamy and earthy pasta dish with rich mushroom notes and herbs.'),
-    (4,'Protein Pancakes','https://www.nourishandtempt.com/wp-content/uploads/2020/02/84706250_161851665248125_7360174580574453760_n.jpg',20,0,FALSE,TRUE,FALSE,2,'Great for breakfast!','A high-protein, easy-to-make breakfast option perfect for busy mornings.');
+    (1, 'Vegan Quinoa Salad', 'https://shaneandsimple.com/wp-content/uploads/2024/04/EASY-Mediterranean-Quinoa-Salad-simple-oilfree-healthy-recipes-shaneandsimple-2-1157x1536.jpg', 20, TRUE, TRUE, TRUE, 4, 'Fresh and healthy quinoa salad with vegetables', 'This is a light and refreshing salad perfect for any occasion.'),
+    (2, 'Classic Spaghetti Carbonara', 'https://www.sweetteaandthyme.com/wp-content/uploads/2018/09/spaghetti-alla-carbonara-45-e1545077413444.jpg', 25, FALSE, FALSE, FALSE, 2, 'Traditional Italian pasta with eggs and pancetta', 'This pasta dish combines savory pancetta with a creamy egg-based sauce.'),
+    (3, 'Chocolate Chip Cookies', 'https://www.onceuponachef.com/images/2021/11/Best-Chocolate-Chip-Cookies.jpg', 30, FALSE, TRUE, FALSE, 24, 'Homemade chocolate chip cookies', 'These cookies are crispy on the outside and chewy on the inside.'),
+    (4, 'Green Omelette', 'https://www.encore-more.com/wp-content/uploads/2021/07/Herbs-Greens-Omelette-Encore-More-e1626452421527-500x500.jpg', 10, FALSE, TRUE, TRUE, 2, 'A light, healthy herb omelette with a Mediterranean twist.', 'A quick and nutritious omelette with a refreshing herbal flavor.'),
+    (4, 'Lamb Chops with Garlic & Rosemary', 'https://tatyanaseverydayfood.com/wp-content/uploads/2020/06/Garlic-Herb-Grilled-Lamb-Chops-3-768x1024.jpg', 35, FALSE, FALSE, TRUE, 2, 'Juicy lamb chops marinated with garlic, rosemary, and olive oil – seared to perfection.', 'Tender lamb chops that deliver bold flavors and a satisfying texture.'),
+    (4, 'Chestnut Mushroom Gnocchi', 'https://annabanana.co/wp-content/uploads/2017/09/Mushroom-Gnocchi-with-Thyme-11-of-17-1.jpg', 25, FALSE, TRUE, FALSE, 3, 'Creamy gnocchi with sautéed chestnut mushrooms, garlic, thyme, and parmesan.', 'A creamy and earthy pasta dish with rich mushroom notes and herbs.'),
+    (4,'Protein Pancakes','https://www.nourishandtempt.com/wp-content/uploads/2020/02/84706250_161851665248125_7360174580574453760_n.jpg',20,FALSE,TRUE,FALSE,2,'Great for breakfast!','A high-protein, easy-to-make breakfast option perfect for busy mornings.');
 
 
 -- Insert into Table 3: user_recipe_ingredients
@@ -181,7 +181,7 @@ VALUES
     (3, NULL, 1, 'Preheat oven to 180°C.'),
     (3, NULL, 2, 'Mix ingredients and scoop onto tray.'),
     (3, NULL, 3, 'Bake until golden brown.'),
-    -- user_id 4 (Green Omelette)
+    -- user_id 4: Green Omelette
     (4, NULL, 1, 'Crack the eggs into a bowl and whisk well.'),
     (4, NULL, 2, 'Chop fresh herbs and add to the egg mixture.'),
     (4, NULL, 3, 'Heat pan and cook mixture on low heat.'),
@@ -227,31 +227,20 @@ VALUES
     (NULL, 6, 3, 'Fold into triangle shape.'),
     (NULL, 6, 4, 'Bake or pan-fry until golden.');
 
+
 -- Insert into Table 10: recipe_preparation_progress
 INSERT INTO recipe_preparation_progress (user_id, spoonacular_recipe_id, user_recipe_id, family_recipe_id, step_number, is_completed, completed_at, session_active)
 VALUES
-    -- user 1
+    -- 3x3 + 4x4 (user_id 1–4): user_recipes
     (1, NULL, 1, NULL, 1, FALSE, NULL, TRUE),
     (1, NULL, 1, NULL, 2, FALSE, NULL, TRUE),
     (1, NULL, 1, NULL, 3, FALSE, NULL, TRUE),
-    (1, NULL, NULL, 1, 1, FALSE, NULL, TRUE),
-    (1, NULL, NULL, 1, 2, FALSE, NULL, TRUE),
-    (1, NULL, NULL, 1, 3, FALSE, NULL, TRUE),
-    -- user 2
     (2, NULL, 2, NULL, 1, FALSE, NULL, TRUE),
     (2, NULL, 2, NULL, 2, FALSE, NULL, TRUE),
     (2, NULL, 2, NULL, 3, FALSE, NULL, TRUE),
-    (2, NULL, NULL, 2, 1, FALSE, NULL, TRUE),
-    (2, NULL, NULL, 2, 2, FALSE, NULL, TRUE),
-    (2, NULL, NULL, 2, 3, FALSE, NULL, TRUE),
-    -- user 3
     (3, NULL, 3, NULL, 1, FALSE, NULL, TRUE),
     (3, NULL, 3, NULL, 2, FALSE, NULL, TRUE),
     (3, NULL, 3, NULL, 3, FALSE, NULL, TRUE),
-    (3, NULL, NULL, 3, 1, FALSE, NULL, TRUE),
-    (3, NULL, NULL, 3, 2, FALSE, NULL, TRUE),
-    (3, NULL, NULL, 3, 3, FALSE, NULL, TRUE),
-    -- user 4 – user_recipes
     (4, NULL, 4, NULL, 1, FALSE, NULL, TRUE),
     (4, NULL, 4, NULL, 2, FALSE, NULL, TRUE),
     (4, NULL, 4, NULL, 3, FALSE, NULL, TRUE),
@@ -268,7 +257,16 @@ VALUES
     (4, NULL, 7, NULL, 2, FALSE, NULL, TRUE),
     (4, NULL, 7, NULL, 3, FALSE, NULL, TRUE),
     (4, NULL, 7, NULL, 4, FALSE, NULL, TRUE),
-    -- user 4 – family_recipes
+    -- Family: 3x3 + 4x4
+    (1, NULL, NULL, 1, 1, FALSE, NULL, TRUE),
+    (1, NULL, NULL, 1, 2, FALSE, NULL, TRUE),
+    (1, NULL, NULL, 1, 3, FALSE, NULL, TRUE),
+    (2, NULL, NULL, 2, 1, FALSE, NULL, TRUE),
+    (2, NULL, NULL, 2, 2, FALSE, NULL, TRUE),
+    (2, NULL, NULL, 2, 3, FALSE, NULL, TRUE),
+    (3, NULL, NULL, 3, 1, FALSE, NULL, TRUE),
+    (3, NULL, NULL, 3, 2, FALSE, NULL, TRUE),
+    (3, NULL, NULL, 3, 3, FALSE, NULL, TRUE),
     (4, NULL, NULL, 4, 1, FALSE, NULL, TRUE),
     (4, NULL, NULL, 4, 2, FALSE, NULL, TRUE),
     (4, NULL, NULL, 4, 3, FALSE, NULL, TRUE),
@@ -280,9 +278,4 @@ VALUES
     (4, NULL, NULL, 6, 1, FALSE, NULL, TRUE),
     (4, NULL, NULL, 6, 2, FALSE, NULL, TRUE),
     (4, NULL, NULL, 6, 3, FALSE, NULL, TRUE),
-    (4, NULL, NULL, 6, 4, FALSE, NULL, TRUE),
-    -- user 4 – spoonacular recipe progress
-    (4, 1096168, NULL, NULL, 1, FALSE, NULL, TRUE),
-    (4, 1096168, NULL, NULL, 2, FALSE, NULL, TRUE),
-    (4, 1096168, NULL, NULL, 3, FALSE, NULL, TRUE),
-    (4, 1096168, NULL, NULL, 4, FALSE, NULL, TRUE);
+    (4, NULL, NULL, 6, 4, FALSE, NULL, TRUE);

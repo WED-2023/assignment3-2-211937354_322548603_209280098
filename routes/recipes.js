@@ -13,7 +13,7 @@ router.use(verifyLogin);
 /*
 {
   "title": "Shakshuka Deluxe",
-  "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ1jBhCzrvfCwbg0Dz54EN5XeWw5vVOtdrQhQ&s",
+  "imageUrl": "https://www.agaliving.com/sites/default/files/styles/recipe_image/public/2023-05/Shakshuka%20in%20Saute%20pan.jpg.webp?itok=BCSlAmt6",
   "readyInMinutes": 30,
   "isVegan": false,
   "isVegetarian": true,
@@ -85,11 +85,11 @@ router.delete("/user/my-recipes/:recipeId", async (req, res, next) => {
 example 1:
 {
   "title": "Shakshuka Supreme",
-  "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ1jBhCzrvfCwbg0Dz54EN5XeWw5vVOtdrQhQ&s",
-  "readyInMinutes": 25,
-  "isVegan": false,
-  "isVegetarian": true,
-  "isGlutenFree": true,
+  "image_url": "https://www.agaliving.com/sites/default/files/styles/recipe_image/public/2023-05/Shakshuka%20in%20Saute%20pan.jpg.webp?itok=BCSlAmt6",
+  "ready_in_minutes": 25,
+  "is_vegan": false,
+  "is_vegetarian": true,
+  "is_gluten_free": true,
   "servings": 3,
   "summary": "A spicy tomato-based breakfast.",
   "instructions": "Simmer sauce, crack eggs, cover and serve."
@@ -150,7 +150,7 @@ router.get("/user/my-recipes/:recipeId/ingredients", async (req, res, next) => {
 /*
 example 1:
 {
-  "ingredientName": "Chopped Tomatoes",
+  "ingredient_name": "Chopped Tomatoes",
   "amount": 150,
   "unit": "grams"
 }
@@ -250,17 +250,17 @@ router.get("/user/my-family-recipes/:recipeId", async (req, res, next) => {
 example 1 – full update:
 {
   "title": "Holiday Apple Pie",
-  "ownerName": "Grandma Esther",
-  "whenToPrepare": "Thanksgiving",
-  "imageUrl": "https://images.com/pie.jpg",
-  "readyInMinutes": 95,
+  "owner_name": "Grandma Esther",
+  "when_to_prepare": "Thanksgiving",
+  "image_url": "https://images.com/pie.jpg",
+  "ready_in_minutes": 95,
   "servings": 10,
   "instructions": "Preheat oven, fill crust, bake until golden."
 }
 
 example 2 – partial update:
 {
-  "title": "Updated Pie Title",
+  "image_url": "https://www.cubesnjuliennes.com/wp-content/uploads/2020/11/Apple-Pie.jpg",
   "servings": 6
 }
 */
@@ -292,6 +292,15 @@ router.delete("/user/my-family-recipes/:recipeId", async (req, res, next) => {
 /** Family's Recipes Ingredients **/
 
 
+
+/**
+ * example for JSON Body
+ * {
+ *   "ingredientName": "Cinnamon",
+ *   "amount": 1,
+ *   "unit": "tsp"
+ * }
+ * **/
 router.post("/user/my-family-recipes/:recipeId/ingredients", async (req, res, next) => {
   try {
     const { ingredientName, amount, unit } = req.body;
@@ -536,6 +545,13 @@ router.put("/user/:type/:recipeId/steps/:stepNumber/uncomplete", async (req, res
 //   GET /user/my-recipes/42/steps/progress
 //   GET /user/my-family-recipes/15/steps/progress
 //   GET /user/spoonacular/339821/steps/progress
+/** Return's Value Example -
+ *  {
+ "total": 4,
+ "completed": 1,
+ "percentage": 25
+ }
+ **/
 
 router.get("/user/:type/:recipeId/steps/progress", async (req, res, next) => {
   try {

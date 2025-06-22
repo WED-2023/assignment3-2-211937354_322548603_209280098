@@ -41,16 +41,6 @@ async function getUserRecipes(userId) {
 
 
 
-// Increment the popularity score of a specific user-created recipe by 1
-async function incrementPopularity(recipeId) {
-    const query = `
-        UPDATE user_recipes
-        SET popularity_score = popularity_score + 1
-        WHERE recipe_id = ?
-    `;
-    await db.execute(query, [recipeId]);
-}
-
 async function isUserRecipeOwner(recipeId, userId) {
     const [rows] = await db.execute(
         "SELECT 1 FROM user_recipes WHERE recipe_id = ? AND user_id = ?",
