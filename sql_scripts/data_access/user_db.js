@@ -54,6 +54,7 @@ async function updateUserById(userId, updates) {
     await db.execute(query, [username, firstName, lastName, country, email, passwordHash, userId]);
 }
 
+
 module.exports = {
     getPasswordHash,
     createUser,

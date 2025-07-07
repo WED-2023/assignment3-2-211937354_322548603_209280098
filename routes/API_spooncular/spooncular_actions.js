@@ -59,7 +59,8 @@ async function fetchRecipesBySearch(searchCriteria, userId = null) {
     const userUtils  = require("../utils/user_utils"); //To store recipes in DB
     const data = await spoonacularConnect.getFromSpoonacular("/complexSearch", {
         ...searchCriteria,
-        addRecipeInformation: true
+        instructionsRequired: true, // Only return recipes with instructions
+        addRecipeInformation: true, // Include full recipe info (e.g., vegan, readyInMinutes)
     });
     const rawRecipes = data.results || [];
 

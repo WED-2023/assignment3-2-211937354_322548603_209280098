@@ -4,13 +4,21 @@
 const db = require("../db_connection");
 
 // Add a recipe to the user's favorites
-async function addFavorite(userId, spoonacularRecipeId, source) {
+async function addFavorite(userId, spoonacularRecipeId) {
     const query = `
-        INSERT INTO user_favorites (user_id, recipe_id, source)
-        VALUES (?, ?, ?)
+        INSERT INTO user_favorites (user_id, spoonacular_recipe_id)
+        VALUES (?, ?)
     `;
-    await db.execute(query, [userId, spoonacularRecipeId, source]);
+    await db.execute(query, [userId, spoonacularRecipeId]);
 }
+
+// async function addFavorite(userId, spoonacularRecipeId, source) {
+//     const query = `
+//         INSERT INTO user_favorites (user_id, spoonacular_recipe_id, source)
+//         VALUES (?, ?, ?)
+//     `;
+//     await db.execute(query, [userId, spoonacularRecipeId, source]);
+// }
 
 // Get all favorite recipes of a specific user
 async function getFavoritesByUserId(userId) {
@@ -25,7 +33,7 @@ async function getFavoritesByUserId(userId) {
 async function deleteFavorite(userId, spoonacularRecipeId) {
     const query = `
         DELETE FROM user_favorites
-        WHERE user_id = ? AND recipe_id = ?
+        WHERE user_id = ? AND spoonacular_recipe_id = ?
     `;
     await db.execute(query, [userId, spoonacularRecipeId]);
 }

@@ -84,7 +84,9 @@ router.post("/register", async (req, res, next) => {
 // ======================== LOGIN =========================
 router.post("/login", async (req, res, next) => {
   try {
-    const { username, password } = req.body;
+    // const { username, password } = req.body;
+    const username = req.body.username;
+    const password = req.body.password;
 
     // Validate inputs
     if (!username || !password) {
@@ -106,16 +108,19 @@ router.post("/login", async (req, res, next) => {
     req.session.user_id = user.user_id;
 
     // Set login cookie
-    res.cookie("login", "true", {
-      sameSite: "none",
-      secure: true,
-    });
+    // res.cookie("login", "true", {
+    //   sameSite: "none",
+    //   secure: true,
+    // });
 
-    res.status(200).send({ message: "Login successful", success: true });
+    res.status(200).send({ message: "Login successful", success: true , username: user.username });
+
   } catch (err) {
     next(err);
   }
 });
+
+
 
 
 // ======================== LOGOUT ========================

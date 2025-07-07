@@ -27,7 +27,12 @@ function sliceRecipeDetails(recipe) {
         summary: recipe.summary,
         readyInMinutes: recipe.readyInMinutes,
         servings: recipe.servings,
-        instructions: recipe.instructions,
+        instructions: recipe.analyzedInstructions?.length > 0 ? sliceAnalyzedInstructions(recipe.analyzedInstructions) : [],
+        ingredients: recipe.extendedIngredients.map(ing => ({
+            name: ing.name,
+            amount: ing.amount,
+            unit: ing.unit
+        })),
         popularity: recipe.aggregateLikes || 0,
         vegan: recipe.vegan,
         vegetarian: recipe.vegetarian,

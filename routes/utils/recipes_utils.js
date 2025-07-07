@@ -53,7 +53,7 @@ async function addPersonalRecipe(userId, recipeData) {
 
     // Insert recipe into user_recipes
     const recipeId = await userRecipesDB.createUserRecipe(
-        userId, title, imageUrl, readyInMinutes, 0,
+        userId, title, imageUrl, readyInMinutes,
         isVegan, isVegetarian, isGlutenFree, servings, summary, instructions
     );
 
@@ -298,9 +298,9 @@ async function addFamilyRecipe(userId, recipeData) {
     const {
         title, ownerName, whenToPrepare,
         imageUrl, readyInMinutes, servings, instructions,
-        ingredients, preparationSteps
+        ingredients, preparationSteps, isVegan, isVegetarian, isGlutenFree
     } = recipeData;
-
+    
     // Validate ingredients
     if (!Array.isArray(ingredients) || ingredients.length === 0) {
         throw new Error("At least one ingredient is required.");
@@ -323,7 +323,7 @@ async function addFamilyRecipe(userId, recipeData) {
 
     // Insert recipe into family_recipes
     const recipeId = await familyRecipesDB.createFamilyRecipe(
-        userId, title, ownerName, whenToPrepare, imageUrl, readyInMinutes, servings, instructions
+        userId, title, ownerName, whenToPrepare, imageUrl, readyInMinutes, servings, instructions, isVegan, isVegetarian, isGlutenFree
     );
 
     // Insert ingredients into family_recipe_ingredients

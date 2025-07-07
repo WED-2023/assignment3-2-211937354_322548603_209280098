@@ -4,13 +4,18 @@
 const db = require("../db_connection");
 
 // Create a new family recipe
-async function createFamilyRecipe(userId, title, ownerName, whenToPrepare, imageUrl, readyInMinutes, servings, instructions) {
+async function createFamilyRecipe(userId, title, ownerName, whenToPrepare, imageUrl, readyInMinutes, servings, instructions, isVegan, isVegetarian, isGlutenFree) {
+    console.log("creating family recipe with:", {
+  userId, title, ownerName, whenToPrepare, imageUrl, readyInMinutes,
+  servings, instructions, isVegan, isVegetarian, isGlutenFree
+});
+
     const query = `
         INSERT INTO family_recipes (
-            user_id, title, owner_name, when_to_prepare, image_url, ready_in_minutes, servings, instructions
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            user_id, title, owner_name, when_to_prepare, image_url, ready_in_minutes, servings, instructions, is_vegan, is_vegetarian, is_gluten_free
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const [result] = await db.execute(query, [userId, title, ownerName, whenToPrepare, imageUrl, readyInMinutes, servings, instructions]);
+    const [result] = await db.execute(query, [userId, title, ownerName, whenToPrepare, imageUrl, readyInMinutes, servings, instructions, isVegan, isVegetarian, isGlutenFree]);
     return result.insertId;
 }
 

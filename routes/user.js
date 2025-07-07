@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const verifyLogin = require("./middleware/verifyLogin");
 const userUtils = require("../routes/utils/user_utils");
+const { fetchRecipesBySearch } = require("../routes/API_spooncular/spooncular_actions");
+const favoritesDB = require("../sql_scripts/data_access/user_favorites_db");
 
 /** Middleware to verify user session */
 // Middleware to secure all /user routes
@@ -19,8 +21,20 @@ router.get("/favorites", async (req, res, next) => {
   }
 });
 
+router.get("/favorite-ids", async (req, res, next) => {
+  try {
+    const rawFavorites = await favoritesDB.getFavoritesByUserId(req.user_id);
+    const ids = rawFavorites.map(f => f.spoonacular_recipe_id);
+    res.status(200).send(ids);
+  } catch (error) {
+    console.error("Error fetching favorite IDs:", error);
+    next(error);
+  }
+});
+
 router.post("/favorites", async (req, res, next) => {
   try {
+
     await userUtils.addFavoriteRecipe(req.user_id, req.body.recipeId);
     res.status(200).send({ message: "Saved to your favorites – bon appétit!" });
   } catch (error) {
@@ -41,15 +55,62 @@ router.delete("/favorites/:recipeId", async (req, res, next) => {
 
 /** Views */
 
-router.get("/my-last-watched", async (req, res, next) => {
+// router.get("/my-last-watched", async (req, res, next) => {
+//   try {
+//     const viewed = await userUtils.getViewedRecipes(req.user_id);
+//     res.status(200).send(viewed);
+//   } catch (error) {
+//     console.error("Error fetching last watched:", error);
+//     next(error);
+//   }
+// });
+//
+// Get the last 3 viewed recipes with full details
+router.get("/recently-viewed", async (req, res, next) => {
   try {
-    const viewed = await userUtils.getViewedRecipes(req.user_id);
-    res.status(200).send(viewed);
+    const recipes = await userUtils.getRecentlyViewedRecipes(req.user_id);
+    res.status(200).send(recipes);
+  } catch (err) {
+    next(err);
+  }
+});
+
+//all last viewed ids
+router.get("/viewed-ids", async (req, res, next) => {
+  try {
+    const views = await userUtils.getAllViewedRecipeIds(req.user_id);
+    res.status(200).send(views);
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+router.post("/mark-as-viewed", async (req, res, next) => {
+  try {
+    const { recipe_id, source } = req.body;
+
+    if (!recipe_id || !source) {
+      return res.status(400).send({ message: "Missing recipe_id or source" });
+    }
+
+    const params = {
+      spoonacularId: source === "spoonacular" ? recipe_id : null,
+      userRecipeId: source === "my-recipes" ? recipe_id : null,
+      familyRecipeId: source === "my-family-recipes" ? recipe_id : null
+    };
+
+    await userUtils.addViewedRecipe(req.user_id, params);
+
+    res.status(201).send({ message: "Recipe marked as viewed" });
+
   } catch (error) {
-    console.error("Error fetching last watched:", error);
+    console.error("Error marking recipe as viewed:", error);
     next(error);
   }
 });
+
+
 
 router.delete("/views", async (req, res, next) => {
   try {
@@ -78,6 +139,50 @@ router.get("/search-history", async (req, res, next) => {
   }
 });
 
+router.get("/last-search-results", async (req, res, next) => {
+  try {
+    const lastSearch = await userUtils.getLastSearchQuery(req.user_id);
+    if (!lastSearch || !lastSearch.search_query) {
+      return res.status(404).send({ message: "No recent search found for this user." });
+    }
+
+    const searchParams = {
+      query: lastSearch.search_query,
+      cuisine: lastSearch.cuisine_filter,
+      diet: lastSearch.diet_filter,
+      intolerances: lastSearch.intolerance_filter,
+      number: lastSearch.results_limit || 5
+    };
+
+    const recipes = await fetchRecipesBySearch(searchParams, null); 
+
+    res.status(200).send({
+      searchMeta: searchParams,
+      recipes
+    });
+
+  } catch (error) {
+    console.error("Error running last search again:", error);
+    next(error);
+  }
+});
+
+router.post("/search-history", async (req, res, next) => {
+  try {
+    const { query, cuisine, diet, intolerance, limit } = req.body;
+
+    if (!query) {
+      return res.status(400).send({ message: "Missing search query" });
+    }
+
+    await userUtils.saveUserSearch(req.user_id, query, cuisine, diet, intolerance, limit || 5);
+
+    res.status(201).send({ message: "Search history saved" });
+  } catch (err) {
+    console.error("Error saving search history:", err);
+    next(err);
+  }
+});
 
 /** Meal Plan **/
 

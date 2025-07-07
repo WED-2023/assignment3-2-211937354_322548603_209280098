@@ -37,6 +37,8 @@ router.use(verifyLogin);
 
 router.post("/user/new-recipe", async (req, res, next) => {
   try {
+    console.log("📦 Received recipe body from frontend:", JSON.stringify(req.body, null, 2));
+
     await recipesLogic.addPersonalRecipe(req.user_id, req.body);
     res.status(201).send({ message: "Recipe created successfully!" });
   } catch (error) {

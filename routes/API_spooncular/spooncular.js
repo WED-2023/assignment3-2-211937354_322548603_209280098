@@ -23,6 +23,7 @@ router.get("/random", async (req, res, next) => {
 router.get("/:id",async (req, res, next) => {
     try {
         const recipeId = req.params.id;
+        console.log("Fetching recipe by ID:", recipeId);
         const userId = req.user?.user_id;
         const recipe = await spoonacularActions.fetchRecipeById(recipeId, userId);
         res.json(recipe);
@@ -39,13 +40,13 @@ router.get("/:id",async (req, res, next) => {
 router.get("/search/query", async (req, res, next) => {
     try {
         const criteria = {
-            query: req.query.q || "",
+            query: req.query.query || "",
             cuisine: req.query.cuisine || "",
             diet: req.query.diet || "",
             intolerance: req.query.intolerance || "",
             number: req.query.limit || 5
         };
-
+        console.log("Search criteria:", criteria);
         const userId = req.user?.user_id;
         const results = await spoonacularActions.fetchRecipesBySearch(criteria, userId);
         res.json(results);

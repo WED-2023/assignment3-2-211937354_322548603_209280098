@@ -30,7 +30,8 @@ async function addFavoriteRecipe(userId, recipeId) {
     const currentFavorites = await favoritesDB.getFavoritesByUserId(userId);
     if (currentFavorites.some(fav => fav.spoonacular_recipe_id === recipeId)) return;
 
-    await favoritesDB.addFavorite(userId, recipeId, "spoonacular");
+    // await favoritesDB.addFavorite(userId, recipeId, "spoonacular");
+    await favoritesDB.addFavorite(userId, recipeId);
 }
 
 
@@ -47,8 +48,12 @@ async function removeFavorite(userId, recipeId) {
 async function getFavoriteRecipes(userId) {
     const recipeCombiner = require("../recipes_combined_utils");
     const rawFavorites = await favoritesDB.getFavoritesByUserId(userId);
-    return await recipeCombiner.enrichRecipesFromDB(rawFavorites, "source", "recipe_id", userId);
+    const enrichedFavorites = rawFavorites.map(fav => ({...fav, source: "spoonacular"}));
+    return await recipeCombiner.enrichRecipesFromDB(enrichedFavorites, "source", "spoonacular_recipe_id", userId);
+
 }
+
+
 
 /**
  * Adds a view log for a recipe and increases popularity score if it's a local recipe
@@ -72,21 +77,76 @@ async function addViewedRecipe(userId, { spoonacularId = null, userRecipeId = nu
  * - The system assumes all entries in the 'recipe_views' table are Spoonacular-based.
  * - Each view is enriched with full recipe data using the Spoonacular recipe ID.
  */
+async function getRecentlyViewedRecipes(userId) {
+  const recipeCombiner = require("../recipes_combined_utils");
+  const rawViews = await viewsDB.getViewsByUserId(userId);
 
-async function getViewedRecipes(userId) {
-    const recipeCombiner = require("../recipes_combined_utils");
-    const rawViews = await viewsDB.getViewsByUserId(userId);
+  const lastThree = rawViews
+    .filter(view => view.spoonacular_recipe_id !== null)
+    .sort((a, b) => new Date(b.viewed_at) - new Date(a.viewed_at))
+    .slice(0, 3)
+    .map(view => ({
+      recipe_id: view.spoonacular_recipe_id,
+      source: "spoonacular",
+      viewed_at: view.viewed_at
+    }));
 
-    // Filter only spoonacular-based views and map them to expected structure
-    const enriched = rawViews
-        .filter(view => view.spoonacular_recipe_id !== null)
-        .map(view => ({
-            recipe_id: view.spoonacular_recipe_id,
-            source: "spoonacular"
-        }));
+  const enriched = await recipeCombiner.enrichRecipesFromDB(lastThree, "source", "recipe_id", userId);
 
-    return await recipeCombiner.enrichRecipesFromDB(enriched, "source", "recipe_id", userId);
+  return enriched.map(recipe => {
+    const match = lastThree.find(v => v.recipe_id === recipe.recipe_id);
+    return {
+      ...recipe,
+      viewed_at: match?.viewed_at || null
+    };
+  });
 }
+
+async function getAllViewedRecipeIds(userId) {
+  const rawViews = await viewsDB.getViewsByUserId(userId);
+
+  return rawViews
+    .filter(view => view.spoonacular_recipe_id !== null)
+    .map(view => view.spoonacular_recipe_id);
+}
+
+// async function getViewedRecipes(userId) {
+//     const recipeCombiner = require("../recipes_combined_utils");
+//     const rawViews = await viewsDB.getViewsByUserId(userId);
+
+//     const enriched = rawViews
+//         .filter(view => view.spoonacular_recipe_id !== null)
+//         .map(view => ({
+//             recipe_id: view.spoonacular_recipe_id,
+//             source: "spoonacular",
+//             viewed_at: view.viewed_at 
+//         }));
+
+//     const recipes = await recipeCombiner.enrichRecipesFromDB(enriched, "source", "recipe_id", userId);
+
+//     return recipes.map(recipe => {
+//         const match = enriched.find(v => v.recipe_id === recipe.recipe_id);
+//         return {
+//             ...recipe,
+//             viewed_at: match?.viewed_at || null
+//         };
+//     });
+// }
+
+// async function getViewedRecipes(userId) {
+//     const recipeCombiner = require("../recipes_combined_utils");
+//     const rawViews = await viewsDB.getViewsByUserId(userId);
+
+//     // Filter only spoonacular-based views and map them to expected structure
+//     const enriched = rawViews
+//         .filter(view => view.spoonacular_recipe_id !== null)
+//         .map(view => ({
+//             recipe_id: view.spoonacular_recipe_id,
+//             source: "spoonacular"
+//         }));
+
+//     return await recipeCombiner.enrichRecipesFromDB(enriched, "source", "recipe_id", userId);
+// }
 
 
 /**
@@ -183,7 +243,10 @@ module.exports = {
     removeFavorite,
     getFavoriteRecipes,
     addViewedRecipe,
-    getViewedRecipes,
+    // getViewedRecipes,
     saveUserSearch,
-    addMealPlan
+    addMealPlan,
+    getRecentlyViewedRecipes,
+    getAllViewedRecipeIds,
+
 };

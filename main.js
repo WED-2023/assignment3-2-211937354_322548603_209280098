@@ -9,6 +9,17 @@ var cors = require("cors");
 
 var app = express();
 app.use(logger("dev")); //logger
+var cors = require('cors')
+app.use(cors({
+  origin: 'http://localhost:8080',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+// app.use(cors({
+//     origin: "http://localhost:8080",
+//     credentials: true
+// }
+// ));
 app.use(express.json()); // parse application/json
 app.use(
     session({
@@ -57,21 +68,21 @@ const auth = require("./routes/auth");
 const spoonacular = require("./routes/API_spooncular/spooncular");
 
 //#region cookie middleware
-app.use(async function (req, res, next) {
-    try {
-        if (req.session && req.session.user_id) {
-            const [users] = await DB.query("SELECT user_id FROM users");
-            const match = users.find((x) => x.user_id === req.session.user_id);
+// app.use(async function (req, res, next) {
+//     try {
+//         if (req.session && req.session.user_id) {
+//             const [users] = await DB.query("SELECT user_id FROM users");
+//             const match = users.find((x) => x.user_id === req.session.user_id);
 
-            if (match) {
-                req.user = { user_id: req.session.user_id };
-            }
-        }
-        next();
-    } catch (err) {
-        next(err);
-    }
-});
+//             if (match) {
+//                 req.user = { user_id: req.session.user_id };
+//             }
+//         }
+//         next();
+//     } catch (err) {
+//         next(err);
+//     }
+// });
 //#endregion
 
 
