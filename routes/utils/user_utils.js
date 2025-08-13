@@ -33,7 +33,7 @@ const mealPlanDB = require("../../sql_scripts/data_access/meal_plans_db");
 
 async function addFavoriteRecipe(userId, recipeId) {
     const currentFavorites = await favoritesDB.getFavoritesByUserId(userId);
-    if (currentFavorites.some(fav => fav.spoonacular_recipe_id === recipeId)) return;
+    if (currentFavorites.some(fav => fav.recipe_id === recipeId)) return;
 
     // await favoritesDB.addFavorite(userId, recipeId, "spoonacular");
     await favoritesDB.addFavorite(userId, recipeId);
@@ -54,7 +54,7 @@ async function getFavoriteRecipes(userId) {
     const recipeCombiner = require("../recipes_combined_utils");
     const rawFavorites = await favoritesDB.getFavoritesByUserId(userId);
     const enrichedFavorites = rawFavorites.map(fav => ({...fav, source: "spoonacular"}));
-    return await recipeCombiner.enrichRecipesFromDB(enrichedFavorites, "source", "spoonacular_recipe_id", userId);
+    return await recipeCombiner.enrichRecipesFromDB(enrichedFavorites, "source", "recipe_id", userId);
 
 }
 

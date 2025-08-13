@@ -5,16 +5,8 @@ var path = require("path");
 var logger = require("morgan");
 const session = require("client-sessions");
 const DB = require("./sql_scripts/db_connection");
-var cors = require('cors')
-
-
-
+var cors = require("cors");
 var app = express();
-app.use(cors({
-  origin: 'https://lln.cs.bgu.ac.il',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
-}));
 app.use(logger("dev")); //logger
 app.use(express.json()); // parse application/json
 app.use(
@@ -25,7 +17,6 @@ app.use(
         duration: 24 * 60 * 60 * 1000, // expired after 20 sec
         activeDuration: 1000 * 60 * 5, // if expiresIn < activeDuration,
         cookie: {
-
             httpOnly: false,
         }
         //the session will be extended by activeDuration milliseconds
@@ -56,7 +47,7 @@ app.get("/", function (req, res) {
 // app.use(cors(corsConfig));
 // app.options("*", cors(corsConfig));
 
-// var port = process.env.PORT || "80"; //local=3000 remote=80
+var port = process.env.PORT || "80"; //local=3000 remote=80
 //#endregion
 
 const user = require("./routes/user");

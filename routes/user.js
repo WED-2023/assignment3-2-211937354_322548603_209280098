@@ -24,7 +24,7 @@ router.get("/favorites", async (req, res, next) => {
 router.get("/favorite-ids", async (req, res, next) => {
   try {
     const rawFavorites = await favoritesDB.getFavoritesByUserId(req.user_id);
-    const ids = rawFavorites.map(f => f.spoonacular_recipe_id);
+    const ids = rawFavorites.map(f => f.recipe_id);
     res.status(200).send(ids);
   } catch (error) {
     console.error("Error fetching favorite IDs:", error);
