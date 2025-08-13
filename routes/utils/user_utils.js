@@ -3,13 +3,18 @@ const viewsDB = require("../../sql_scripts/data_access/recipe_views_db");
 const searchHistoryDB  = require("../../sql_scripts/data_access/search_history_db");
 const mealPlanDB = require("../../sql_scripts/data_access/meal_plans_db");
 
-/** In Remote Server Replace lines 2-5 with :
+/** In Remote Server Replace lines 1-4 with :
 const favoritesDB = require("../../sql_scripts/data_access/user_favorites_db");
 const viewsDB = require("../../sql_scripts/data_access/recipe_views_db");
 const searchHistoryDB  = require("../../sql_scripts/data_access/search_history_db");
 const mealPlanDB = require("../../sql_scripts/data_access/meal_plans_db");
 **/
 
+/** In Local Server Replace Lines 1-4 with :
+ * const viewsDB = require("/sql_scripts/data_access/recipe_views_db");
+ * const searchHistoryDB  = require("/sql_scripts/data_access/search_history_db");
+ * const mealPlanDB = require("/sql_scripts/data_access/meal_plans_db");
+ */
 
 
 

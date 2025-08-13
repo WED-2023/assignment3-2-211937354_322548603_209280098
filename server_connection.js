@@ -70,7 +70,7 @@ function onError(error) {
 /**
  * Event listener for HTTP server "listening" event.
  */
-server.address("https://lln.cs.bgu.ac.il");
+// server.address("https://lln.cs.bgu.ac.il");
 function onListening() {
   var addr = server.address();
   var bind = typeof addr === 'string'
